@@ -1,0 +1,1809 @@
+<title>Market Demand Pacing — Global Hotel Markets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* ── palette ───────────────────────────────────────────────────────────────
+   Warm editorial: charcoal ink, bronze-amber accent, warm neutrals.
+   Colour does exactly four jobs here and no more —
+     ink/neutrals  page furniture, never data
+     amber         interactive affordance and page furniture only
+     red ↔ green   the diverging pacing scale (the only data colour)
+     bronze ramp   the ordinal segment mix, one hue, monotone lightness
+   Two measured constraints shaped these values. (1) The "behind" pole is a
+   magenta-leaning crimson rather than a pure red: against the amber accent
+   sitting immediately beside the grid, a pure red separated by only ΔE 14.9
+   in normal vision — below the 15 floor — where this reads 17.2. (2) Red↔green
+   separates by ΔE 3.5 under deuteranopia, far below the usable floor, so the
+   sign never rests on hue: every cell carries a signed number and a red-to-blue
+   scale (which clears every check) is one click away in the controls.        */
+:root{
+  --charcoal:#23201B; --amber:#D98324; --bronze:#8A5010;
+
+  --bg:#FFFFFF;
+  --surface:#FAF7F2;
+  --panel:#FFFFFF;
+  --ink:#1F1B16;
+  --body:#3A342C;
+  --muted:#6E655A;
+  --hairline:#E7E0D6;
+  --grid:#F0EAE1;
+  --accent:#8A5010;
+
+  /* diverging pacing scale, warm neutral midpoint that must read as nothing */
+  --pole-behind:#C2185B;
+  --pole-ahead:#1F7A4D;
+  --pole-mid:#F2EFEA;
+
+  /* ordinal segment ramp — one hue (bronze), monotone lightness, validated */
+  --seg-1:#5A3408; --seg-2:#86500F; --seg-3:#B0761F; --seg-4:#D6A45C;
+
+  /* the two booking-curve series. Subject and reference, separated by
+     lightness and a dash rather than by hue: measured ΔE 33.8 apart, where
+     the amber accent against this grey would have been far closer — and the
+     accent is the interactive colour, so it does no data work anywhere. */
+  --series-now:#2E2822;
+  --ly-line:#8C8578;
+
+  --shadow:0 1px 2px rgba(35,32,27,.06), 0 8px 24px rgba(35,32,27,.06);
+  --radius:6px;
+  --serif:"Source Serif 4", Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14120F; --surface:#1C1A16; --panel:#201D18;
+    --ink:#F2EDE4; --body:#E3DCD0; --muted:#A79C8C;
+    --hairline:#332E27; --grid:#29241E;
+    --accent:#DC9A4E;
+    --pole-behind:#EA6890; --pole-ahead:#3AAE70; --pole-mid:#26231E;
+    --seg-1:#F0CE97; --seg-2:#D8A662; --seg-3:#B9812F; --seg-4:#93601A;
+    --series-now:#EDE6DA;
+    --ly-line:#9B9384;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14120F; --surface:#1C1A16; --panel:#201D18;
+  --ink:#F2EDE4; --body:#E3DCD0; --muted:#A79C8C;
+  --hairline:#332E27; --grid:#29241E;
+  --accent:#DC9A4E;
+  --pole-behind:#EA6890; --pole-ahead:#3AAE70; --pole-mid:#26231E;
+  --seg-1:#F0CE97; --seg-2:#D8A662; --seg-3:#B9812F; --seg-4:#93601A;
+  --series-now:#EDE6DA;
+  --ly-line:#9B9384;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+/* Alternative pacing scale: red↔blue. Red↔green is the revenue-management
+   convention and the faster read for a commercial team, but the two poles
+   separate by only ΔE 3.5 under deuteranopia (red↔blue: well clear of the
+   target), so the scale is switchable rather than fixed. */
+:root[data-scale="rb"]{--pole-ahead:#1266B0}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"])[data-scale="rb"]{--pole-ahead:#5AA9E6}
+}
+:root[data-theme="dark"][data-scale="rb"]{--pole-ahead:#5AA9E6}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--body);
+  font-family:"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1380px; margin:0 auto; padding-inline:16px; padding-block:0 56px}
+
+/* ── masthead ─────────────────────────────────
+   A charcoal block carrying the author's name as a wordmark, against a warm
+   neutral band holding the positioning line and contact. The block is the
+   same structural idea as a publication masthead: identity left, particulars
+   right, a rule closing the page at the foot.                            */
+.masthead{display:flex; align-items:stretch; margin-top:26px; min-height:124px}
+.mh-name{
+  background:var(--charcoal); flex:0 0 auto; min-width:0;
+  /* dark mode inverts the relationship: the block must be lighter than the page */
+  display:flex; flex-direction:column; justify-content:center; gap:7px;
+  padding:26px 40px;
+}
+.mh-name .wordmark{
+  font-family:var(--serif); font-weight:600;
+  font-size:clamp(21px,2.4vw,29px); line-height:1.05; letter-spacing:.055em;
+  text-transform:uppercase; color:#fff; white-space:nowrap;
+}
+.mh-name .rule{height:3px; width:46px; background:var(--amber)}
+.mh-name .role{
+  font-size:11px; font-weight:500; line-height:1.45; color:#D9D2C6;
+  max-width:44ch;
+}
+.mh-meta{
+  background:var(--surface); flex:1 1 auto; min-width:0;
+  display:flex; align-items:center; justify-content:space-between; gap:18px;
+  padding:20px 28px; flex-wrap:wrap;
+  border:1px solid var(--hairline); border-left:0;
+}
+:root[data-theme="dark"] .mh-name{background:#302A22}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .mh-name{background:#302A22}}
+.mh-contact{display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12.5px; margin:8px 0 0}
+.mh-contact a{color:var(--accent); font-weight:600; text-decoration:underline;
+  text-decoration-thickness:1px; text-underline-offset:3px}
+.mh-contact a:hover{text-decoration-thickness:2px}
+.mh-contact span{color:var(--muted)}
+@media (max-width:860px){
+  .masthead{flex-direction:column}
+  .mh-name{padding:22px 24px}
+  .mh-name .wordmark{white-space:normal}
+  .mh-meta{padding:16px 20px; border-left:1px solid var(--hairline); border-top:0}
+}
+
+/* ── header ─────────────────────────────── */
+header.top{padding-block:0 22px; border-bottom:1px solid var(--hairline)}
+.eyebrow{
+  font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 4px;
+}
+:root[data-theme="dark"] .eyebrow{color:var(--muted)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .eyebrow{color:var(--muted)}}
+h1{
+  font-family:var(--serif);
+  font-size:clamp(30px,4.8vw,46px); line-height:1.06; font-weight:600;
+  letter-spacing:-.008em;
+  color:var(--ink); margin:32px 0 0; text-wrap:balance;
+}
+/* the one paragraph that has to earn the reader's next thirty seconds */
+.standfirst{
+  font-size:15.5px; line-height:1.55; color:var(--body);
+  max-width:74ch; margin:12px 0 0; text-wrap:pretty;
+}
+.asof{font-size:13px; color:var(--muted); margin:0}
+.asof b{font-weight:700}
+:root[data-theme="dark"] .asof{color:var(--muted)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .asof{color:var(--muted)}}
+
+/* Deep Sky closing bar, as the template uses */
+/* the page closes the way it opens: charcoal band, amber rule */
+.footbar{height:12px; background:var(--charcoal); border-top:3px solid var(--amber); margin-top:34px}
+:root[data-theme="dark"] .footbar{background:#2A261F}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .footbar{background:#2A261F}}
+.tools{display:flex; gap:8px; align-items:center}
+button.ghost{
+  font-family:inherit; font-size:12px; font-weight:600; color:var(--muted);
+  background:transparent; border:1px solid var(--hairline); border-radius:var(--radius);
+  padding:7px 12px; cursor:pointer;
+}
+button.ghost:hover{color:var(--ink); border-color:var(--accent)}
+/* the masthead band is a tint, so the default hairline border needs help there */
+.mh-meta button.ghost{border-color:#D6CCBC}
+:root[data-theme="dark"] .mh-meta button.ghost{border-color:#4A4238}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .mh-meta button.ghost{border-color:#4A4238}}
+button.ghost:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ── about this analysis ──────────────────────────────────
+   Four short columns between the headline and the data. This is a work
+   sample, so the reasoning behind the page is part of the deliverable. */
+.about{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:0;
+  border-top:1px solid var(--hairline); margin-top:26px;
+}
+.about > div{padding:20px 22px 22px; border-left:1px solid var(--hairline); min-width:0}
+.about > div:first-child{border-left:0; padding-left:0}
+.about h3{
+  font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 9px;
+}
+.about p{font-size:12.5px; line-height:1.55; color:var(--body); margin:0}
+.about p + p{margin-top:7px}
+.about b{font-weight:600}
+.about a{color:var(--accent); font-weight:600; text-decoration:underline;
+  text-decoration-thickness:1px; text-underline-offset:3px}
+.about a:hover{text-decoration-thickness:2px}
+@media (max-width:1000px){
+  .about{grid-template-columns:repeat(2,1fr)}
+  .about > div{padding:18px 18px 20px}
+  .about > div:nth-child(odd){border-left:0; padding-left:0}
+  .about > div:nth-child(n+3){border-top:1px solid var(--hairline)}
+}
+@media (max-width:600px){
+  .about{grid-template-columns:1fr}
+  .about > div{border-left:0; padding-left:0}
+  .about > div:not(:first-child){border-top:1px solid var(--hairline)}
+}
+
+/* the closing note: who built it and what they are looking for */
+.colophon{
+  margin-top:20px; padding-top:18px; border-top:1px solid var(--hairline);
+  font-size:12.5px; line-height:1.6; color:var(--body); max-width:88ch;
+}
+.colophon b{color:var(--ink); font-weight:600}
+.colophon a{color:var(--accent); font-weight:600; text-decoration:underline;
+  text-decoration-thickness:1px; text-underline-offset:3px}
+
+/* ── view tabs ────────────────────────────────────────── */
+.tabs{
+  display:flex; gap:4px; border-bottom:1px solid var(--hairline); margin-top:26px;
+  overflow-x:auto; overflow-y:hidden;
+}
+.tab{
+  font-family:inherit; font-size:13.5px; font-weight:700; letter-spacing:.02em;
+  color:var(--muted); background:transparent; border:0; border-bottom:3px solid transparent;
+  padding:13px 20px 12px; cursor:pointer; white-space:nowrap;
+}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+
+/* The region control sits above the KPIs, so the headline figures
+   visibly answer to it rather than looking fixed. */
+.regionstrip{padding-block:20px; border-bottom:1px solid var(--hairline)}
+.regionstrip .rslabel{
+  font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 9px;
+}
+.rshint{font-size:12px; color:var(--muted); margin:11px 0 0}
+
+/* region comparison */
+/* The rows drill through to the region tab, so they carry a visible affordance
+   at rest — link styling plus a chevron — not a hover-only cue, which is
+   invisible to anyone scanning and absent on touch. */
+.regcompare td.mk{text-align:left}
+.rlink{display:inline-flex; align-items:center; gap:7px; color:var(--accent); font-weight:700}
+.rlink .rtext{text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px}
+.rlink .chev{
+  flex:0 0 auto; display:inline-block;
+  width:7px; height:11px; max-width:7px;
+  transition:transform .13s ease;
+}
+.regcompare tbody tr:hover .rlink .rtext,
+.regcompare tbody tr:focus-visible .rlink .rtext{text-decoration-thickness:2px}
+.regcompare tbody tr:hover .rlink .chev,
+.regcompare tbody tr:focus-visible .rlink .chev{transform:translateX(3px)}
+.regcompare tbody tr{cursor:pointer}
+.regcompare tbody tr:hover td{background:var(--surface)}
+.regcompare tbody tr.on td{background:var(--surface)}
+.regcompare tbody tr.on td.mk{box-shadow:inset 3px 0 0 var(--accent)}
+.regcompare tbody tr:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+
+/* ── KPI strip — dividers, not cards ──────────────────── */
+.kpis{
+  display:grid; grid-template-columns:repeat(4,1fr);
+  border-bottom:1px solid var(--hairline);
+}
+.kpi{padding:22px 24px 24px; border-left:1px solid var(--hairline)}
+.kpi:first-child{border-left:0; padding-left:0}
+.kpi .label{
+  font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 10px;
+}
+.kpi .val{
+  font-size:clamp(24px,3vw,32px); font-weight:700; line-height:1;
+  letter-spacing:-.02em; color:var(--ink); font-variant-numeric:proportional-nums;
+}
+.kpi .sub{font-size:12px; color:var(--muted); margin-top:7px}
+.kpi .val.pos{color:var(--pole-ahead)} .kpi .val.neg{color:var(--pole-behind)}
+@media (max-width:860px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpi{padding:18px 16px}
+  .kpi:nth-child(odd){border-left:0; padding-left:0}
+  .kpi:nth-child(n+3){border-top:1px solid var(--hairline)}
+}
+@media (max-width:460px){
+  .kpis{grid-template-columns:1fr}
+  .kpi{border-left:0; padding-left:0}
+  .kpi:not(:first-child){border-top:1px solid var(--hairline)}
+}
+
+/* ── empty state ──────────────────────────────────────── */
+.emptystate{
+  border-bottom:1px solid var(--hairline); padding-block:44px 48px; text-align:center;
+}
+.emptystate h3{font-size:16px; font-weight:700; color:var(--ink); margin:0 0 8px}
+.emptystate p{font-size:13px; color:var(--muted); margin:0 auto; max-width:56ch}
+
+/* ── one filter row above everything it scopes ────────── */
+.filters{padding-block:18px 20px; border-bottom:1px solid var(--hairline)}
+.filterrow{display:flex; flex-wrap:wrap; gap:14px 20px; align-items:flex-end}
+.filterrow + .filterrow{margin-top:16px; padding-top:16px; border-top:1px solid var(--grid)}
+.field{display:flex; flex-direction:column; gap:6px; min-width:0}
+.field > label{
+  font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+}
+select, input[type=search]{
+  font-family:inherit; font-size:13px; color:var(--body); background:var(--panel);
+  border:1px solid var(--hairline); border-radius:var(--radius); padding:8px 10px; min-height:36px;
+}
+select:focus-visible, input:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+input[type=search]{min-width:200px}
+.ac{position:relative}
+.aclist{
+  position:absolute; z-index:30; top:calc(100% + 5px); left:0; min-width:260px;
+  max-height:264px; overflow-y:auto; margin:0; padding:4px; list-style:none;
+  background:var(--panel); border:1px solid var(--hairline);
+  border-radius:var(--radius); box-shadow:var(--shadow);
+}
+.aclist li{
+  padding:7px 10px; border-radius:4px; font-size:13px; cursor:pointer;
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px; white-space:nowrap;
+}
+.aclist li .acr{font-size:11px; color:var(--muted)}
+.aclist li[aria-selected="true"], .aclist li:hover{background:var(--surface)}
+.aclist li mark{background:transparent; color:var(--accent); font-weight:700}
+.aclist .acempty{padding:8px 10px; font-size:12.5px; color:var(--muted); cursor:default}
+.aclist .acempty:hover{background:transparent}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{
+  font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;
+  background:var(--panel); color:var(--muted);
+  border:1px solid var(--hairline); border-radius:999px; padding:6px 12px; min-height:32px;
+}
+.chip[aria-pressed="true"]{background:var(--charcoal); border-color:var(--charcoal); color:#fff}
+:root[data-theme="dark"] .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#1B1813}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#1B1813}}
+.chip:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ── section furniture ────────────────────────────────── */
+section{padding-block:30px; border-bottom:1px solid var(--hairline)}
+section:last-of-type{border-bottom:0}
+.shead{display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:6px}
+h2{font-family:var(--serif); font-size:20px; font-weight:600; letter-spacing:-.01em;
+  color:var(--ink); margin:0}
+.note{font-size:12.5px; color:var(--muted); margin:4px 0 18px; max-width:none}
+
+/* The active segment decides every number on the page, so it is stated
+   beside each heading rather than left implicit in a dropdown. */
+.statechip{
+  font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); background:var(--surface); border:1px solid var(--hairline);
+  border-radius:999px; padding:4px 11px;
+  white-space:nowrap; max-width:100%;
+}
+/* the chip carries a long string, so it wraps rather than pushing the page wide */
+@media (max-width:860px){.statechip{white-space:normal; line-height:1.35}}
+:root[data-theme="dark"] .statechip{background:var(--surface); color:var(--muted)}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .statechip{background:var(--surface); color:var(--muted)}
+}
+.sheadl{display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0}
+
+/* ── heatmap ──────────────────────────────────────────── */
+.scale{display:flex; align-items:center; gap:10px; font-size:11px; color:var(--muted); flex-wrap:wrap}
+.scale .bar{
+  width:190px; height:9px; border-radius:2px;
+  background:linear-gradient(to right, var(--pole-behind), var(--pole-mid), var(--pole-ahead));
+}
+.hmwrap{overflow-x:auto; padding-bottom:4px}
+.hm{display:grid; min-width:max-content; font-variant-numeric:tabular-nums}
+.hm .rowlab{
+  position:sticky; left:0; z-index:2; background:var(--bg);
+  padding:0 12px 0 11px; display:flex; align-items:center; gap:8px;
+  font-size:12.5px; white-space:nowrap; border-right:1px solid var(--hairline);
+}
+.hm .rowlab .cap{font-size:10.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+/* In a narrow panel, fitting every stay month matters more than the capacity
+   chip, which is still in each cell's tooltip and in the table view. */
+@media (max-width:1000px){.hm .rowlab .cap{display:none}}
+.hm .colhead{
+  font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--muted); text-align:center; padding-bottom:8px; white-space:nowrap;
+}
+.hm .corner{position:sticky; left:0; z-index:3; background:var(--bg); padding-left:11px; text-align:left}
+/* the year, stated once above its months */
+.hm .yearhead{
+  font-size:9.5px; font-weight:700; letter-spacing:.14em; color:var(--muted);
+  text-align:center; white-space:nowrap;
+  margin:0 1px 5px; padding-bottom:4px; border-bottom:1px solid var(--hairline);
+}
+/* the two end columns sit across both header rows, aligned to the month names */
+.hm .spanrows{grid-row:span 2; display:flex; align-items:flex-end}
+.hm .corner.spanrows{justify-content:flex-start}
+.hm .winhead{justify-content:flex-end; text-align:right; line-height:1.25}
+.hm .cell{
+  height:22px; margin:1px; border-radius:3px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10.5px; font-weight:600; border:0; padding:0; font-family:inherit;
+}
+.hm .cell:focus-visible{outline:2px solid var(--ink); outline-offset:1px; z-index:4; position:relative}
+.hm.twoline .cell{
+  height:36px; flex-direction:column; gap:0; line-height:1.15; padding:2px 0;
+}
+.hm.twoline .cell .c1{font-size:11px; font-weight:700}
+.hm.twoline .cell .c2{font-size:9.5px; font-weight:600; opacity:.82}
+.hm.twoline .rowlab, .hm.twoline .total{height:36px}
+.hm .cell.na{background:repeating-linear-gradient(135deg,var(--grid) 0 3px,transparent 3px 6px); cursor:default}
+.hm .total{
+  height:22px; margin:1px 1px 1px 10px; display:flex; align-items:center; justify-content:flex-end;
+  font-size:11px; font-weight:700; padding-right:4px; font-variant-numeric:tabular-nums;
+  border-left:1px solid var(--hairline); padding-left:10px;
+}
+.hm .regionhead{
+  grid-column:1/-1; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); padding:16px 0 6px; position:sticky; left:0;
+}
+/* Market rows drill into the detail panels, so they carry the same accent +
+   chevron as the region rows. The underline is held back to hover here: at rest
+   on 50 rows it would compete with the heatmap tint, which is the real signal. */
+.hm .rowlab[data-mk]{cursor:pointer}
+.hm .rowlab .mlink{display:inline-flex; align-items:center; gap:6px; color:var(--accent); font-weight:600}
+.hm .rowlab .mlink .chev{
+  flex:0 0 auto; display:inline-block; width:6px; height:10px; max-width:6px;
+  transition:transform .13s ease;
+}
+.hm .rowlab[data-mk]:hover .mlink .mtext{
+  text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px;
+}
+/* the open market: this selector was previously `.rowsel .rowlab`, which never
+   matched, because the class sits on the label itself */
+.hm .rowlab.rowsel{box-shadow:inset 3px 0 0 var(--accent)}
+.hm .rowlab.rowsel .mlink{color:var(--ink); font-weight:700}
+.hm .rowlab.rowsel .cap{color:var(--body)}
+.hm .rowlab.aggrow{font-weight:700; color:var(--ink); font-size:13px}
+.hm .cell.aggcell{cursor:default}
+tr.sel td, tr.sel th{background:var(--surface)}
+
+/* ── tables (the WCAG-clean twin of every chart) ──────── */
+.tablewrap{overflow-x:auto; margin-top:8px; max-width:100%}
+/* the numbers behind each chart, revealed on request rather than always on show */
+.tbtn{margin-top:14px}
+table{border-collapse:collapse; font-size:12.5px; font-variant-numeric:tabular-nums; min-width:max-content}
+th,td{padding:6px 10px; text-align:right; border-bottom:1px solid var(--grid); white-space:nowrap}
+th:first-child,td:first-child{text-align:left; position:sticky; left:0; background:var(--bg)}
+thead th{
+  font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--muted); border-bottom:1px solid var(--hairline); text-align:right;
+}
+thead th:first-child{text-align:left}
+td.pos{color:var(--pole-ahead)} td.neg{color:var(--pole-behind)}
+
+/* ── the expanded market row ───────────────────────────────
+   The detail sits in a full-width row inside the grid, directly under the
+   market it belongs to. The grid scrolls horizontally, so the panel is stuck
+   to the left edge of the scrollport and sized to it in JS — otherwise it
+   would sit off-screen at the grid's full width.                          */
+.hm .detailslot{grid-column:1/-1}
+.hm .detailslot > section{
+  position:sticky; left:0;
+  border-bottom:0; border-top:1px solid var(--hairline);
+  padding-block:18px 24px; margin-top:6px;
+}
+.hm .detailslot #dtitle{font-size:15px}
+/* the chevron turns down when the row is open, as an accordion marker */
+.hm .rowlab.rowsel .mlink .chev{transform:rotate(90deg)}
+.hm .rowlab[data-mk]:hover .mlink .chev{transform:translateX(2px)}
+.hm .rowlab.rowsel[data-mk]:hover .mlink .chev{transform:rotate(90deg)}
+
+/* ── detail panels ────────────────────────────────────── */
+.detailgrid{display:grid; grid-template-columns:1.15fr 1fr; gap:26px; align-items:start}
+.detailgrid > *{min-width:0}
+@media (max-width:900px){.detailgrid{grid-template-columns:1fr}}
+.panel{background:var(--panel); border:1px solid var(--hairline); border-radius:var(--radius); padding:18px; min-width:0}
+.panel h3{font-family:var(--serif); font-size:15px; font-weight:600; color:var(--ink); margin:0 0 3px}
+.panel .psub{font-size:11.5px; color:var(--muted); margin:0 0 14px}
+.legend{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:11.5px; color:var(--muted); margin-top:12px}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.legend i{width:11px; height:11px; border-radius:2px; display:inline-block}
+.legend i.ln{height:3px; border-radius:2px; width:16px}
+svg{display:block; width:100%; max-width:100%; height:auto}
+
+/* ── portfolio trend ────────────────────── */
+.trendgrid{display:grid; grid-template-columns:1.05fr 1fr; gap:26px; align-items:start}
+.trendgrid > *{min-width:0}
+@media (max-width:900px){.trendgrid{grid-template-columns:1fr}}
+
+/* ── tooltip ──────────────────────────────────────────── */
+#tip{
+  position:fixed; z-index:50; pointer-events:none; opacity:0; transition:opacity .09s;
+  background:var(--charcoal); color:#fff; border-radius:var(--radius); padding:9px 11px;
+  font-size:12px; line-height:1.45; box-shadow:var(--shadow); max-width:270px;
+}
+:root[data-theme="dark"] #tip{background:#2A261F; border:1px solid var(--hairline)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #tip{background:#2A261F; border:1px solid var(--hairline)}}
+#tip .t{font-weight:700; margin-bottom:3px}
+#tip .r{display:flex; justify-content:space-between; gap:14px; font-variant-numeric:tabular-nums}
+#tip .r span:first-child{color:#C7BEAE}
+#tip.on{opacity:1}
+
+/* ── footnotes ────────────────────────────────────────── */
+.foot{padding-block:28px 0; font-size:12px; color:var(--muted); border-top:1px solid var(--hairline)}
+.foot h4{font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:0 0 10px}
+.foot ul{margin:0; padding-left:18px; display:grid; gap:7px; max-width:none}
+.foot b{color:var(--body); font-weight:600}
+.srcline{margin-top:16px; font-size:11px}
+/* every link in the footer picks up the accent, not the browser default */
+.foot a{color:var(--accent); font-weight:600; text-decoration:underline;
+  text-decoration-thickness:1px; text-underline-offset:3px}
+.foot a:hover{text-decoration-thickness:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="mh-name">
+      <p class="wordmark">Libardo Lambrano</p>
+      <span class="rule" aria-hidden="true"></span>
+      <p class="role">Marketing Analytics &amp; Commercial Strategy Leader · Hospitality &amp; Travel · AI-Driven Insights &amp; Automation</p>
+    </div>
+    <div class="mh-meta">
+      <div>
+        <p class="eyebrow">Hotel demand analytics · work sample</p>
+        <p class="asof">On the books as of <b id="asof">—</b> · <b id="nmk">50</b> airport markets · <b id="nmonths">—</b> stay months</p>
+        <p class="mh-contact">
+          <a href="mailto:libardo@syndikomm.com">libardo@syndikomm.com</a>
+          <a href="https://www.linkedin.com/in/libardo-lambrano/" target="_blank" rel="noopener">LinkedIn</a>
+          <span>Orlando, FL · open to relocation</span>
+        </p>
+      </div>
+      <div class="tools">
+        <button class="ghost" id="themebtn" type="button">Dark mode</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="top">
+    <h1>Market Demand Pacing</h1>
+    <p class="standfirst">Where fifty global airport hotel markets stand against the same point last year, read across every stay month still wholly ahead. Built from an Amadeus Hospitality market export, to show what a commercial team can see about softening demand while there is still time to price against it.</p>
+  </header>
+
+  <div class="about">
+    <div>
+      <h3>The question</h3>
+      <p>A hotel commercial team needs to know, months ahead, whether demand is
+      running behind last year — while there is still room to move rate, shift
+      channel mix or chase group business.</p>
+      <p>Timing is the whole value. A stay month twelve weeks out can still be
+      priced against; the same month two weeks out can only be reported on.</p>
+      <p>Amadeus will send the raw daily numbers to anyone who asks. Turning
+      fifty separate market files into one read a team can act on is the work.</p>
+    </div>
+    <div>
+      <h3>The data</h3>
+      <p>Fifty market workbooks from <b>Amadeus Hospitality — Destination
+      Insights: Market Daily Occupancy</b>, one per airport comp set, each
+      carrying every stay date to the export's horizon at a single as-of date.
+      <a href="https://www.amadeus-hospitality.com/local-market-report/"
+      target="_blank" rel="noopener">Amadeus supplies it on request</a>, at no
+      cost, to anyone in the industry who asks.</p>
+    </div>
+    <div>
+      <h3>How it was built</h3>
+      <p>Python (pandas, openpyxl) reduces the fifty workbooks to one monthly
+      dataset — commercial teams plan in months, not days — and every monthly
+      figure was reconciled against Amadeus's own subtotal rows before it was
+      allowed on the page.</p>
+      <p>The result is a single self-contained HTML file. No server, no build
+      step, nothing leaving the browser. Re-pointing it at the next export is
+      one command, and the page relabels its own date ranges.</p>
+    </div>
+    <div>
+      <h3>The judgment calls</h3>
+      <p>Three defaults here are arguments, not conveniences. <b>Sold</b> rather
+      than Totals, because unsold group block inflates far-out demand. The window
+      <b>opens the month after the as-of date</b>: the current month blends nights
+      already stayed with nights on the books, and leaving it in overstated the
+      portfolio's gain by more than half.</p>
+      <p>And every cell carries a <b>signed number</b>: red-to-green is the
+      convention a commercial team reads fastest, but it fails colour-blind
+      viewers, so the sign never rests on hue alone.</p>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Dashboard views">
+    <button class="tab" type="button" role="tab" id="tab-all" aria-selected="true" aria-controls="view">All markets</button>
+    <button class="tab" type="button" role="tab" id="tab-region" aria-selected="false" aria-controls="view">By region</button>
+  </div>
+
+  <div id="view">
+  <div class="regionstrip" id="regionstrip" hidden>
+    <p class="rslabel" id="reglab">Region</p>
+    <div class="chips" id="regions" role="group" aria-labelledby="reglab"></div>
+    <p class="rshint" id="rshint"></p>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="emptystate" id="emptystate" hidden></div>
+
+  <div class="filters" role="group" aria-label="Filters applied to every chart on this page">
+   <div class="filterrow">
+    <div class="field">
+      <label for="seg">Demand segment</label>
+      <select id="seg">
+        <option value="Sold" selected>Sold (transient + group)</option>
+        <option value="Totals">Totals (incl. unsold block)</option>
+        <option value="Transient">Transient only</option>
+        <option value="Group Sold">Group sold only</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="win">Stay months</label>
+      <select id="win"><!-- options are written from the data at boot --></select>
+    </div>
+    <div class="field">
+      <label for="measure">Cell shows</label>
+      <select id="measure">
+        <option value="both" selected>Occupancy + variance vs LY</option>
+        <option value="stly">Variance vs last year (pts)</option>
+        <option value="stlyrn">Variance vs last year (room nights)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="scale">Colour scale</label>
+      <select id="scale">
+        <option value="rg" selected>Red to green</option>
+        <option value="rb">Red to blue (colour-blind safe)</option>
+      </select>
+    </div>
+    <div class="field" id="f-sort">
+      <label for="sort">Order markets by</label>
+      <select id="sort">
+        <option value="worst" selected>Furthest behind last year</option>
+        <option value="best">Furthest ahead of last year</option>
+        <option value="region">Region</option>
+        <option value="cap">Capacity</option>
+        <option value="az">Market name</option>
+      </select>
+    </div>
+    <div class="field" id="f-find">
+      <label for="q">Find a market</label>
+      <div class="ac">
+        <input type="search" id="q" placeholder="Dubai, Tampa…" autocomplete="off"
+               role="combobox" aria-expanded="false" aria-controls="qlist"
+               aria-autocomplete="list" aria-haspopup="listbox">
+        <ul class="aclist" id="qlist" role="listbox" aria-label="Matching markets" hidden></ul>
+      </div>
+    </div>
+   </div>
+  </div>
+
+  <section id="hm-sec">
+    <div class="shead">
+      <div class="sheadl">
+        <h2 id="hmtitle">Pacing by market and stay month</h2>
+        <span class="statechip" id="hmstate"></span>
+      </div>
+      <div class="scale" id="scalelegend"></div>
+    </div>
+    <p class="note" id="hmnote">Each cell is one market's demand for one stay month. Click a market to expand its detail underneath.</p>
+    <div class="hmwrap"><div class="hm" id="hm"></div></div>
+    <div class="shead" style="margin-top:22px">
+      <button class="ghost" id="tabbtn" type="button" aria-expanded="false" aria-controls="hmtable">View as a table</button>
+    </div>
+    <div id="hmtable" hidden></div>
+  </section>
+
+  <section id="regcompare-sec" hidden>
+    <div class="shead"><div class="sheadl"><h2>How the regions compare</h2>
+      <span class="statechip" id="regstate"></span></div></div>
+    <p class="note">Every region on the same footing, for the selected segment and stay months. <b>On books</b> columns are the level currently held; <b>vs LY</b> columns are the change against the same point last year. Both are size-weighted, so each total reflects the region’s actual inventory. Select a region name to open it in the <b>By region</b> tab.</p>
+    <div class="tablewrap"><table class="regcompare" id="regcompare"></table></div>
+  </section>
+
+  <section id="trend-sec">
+    <div class="shead"><div class="sheadl"><h2>Portfolio trend by stay month</h2>
+      <span class="statechip" id="trendstate"></span></div></div>
+    <p class="note" id="trendnote"></p>
+    <div class="trendgrid">
+      <div class="panel">
+        <h3>Where the book stands, month by month</h3>
+        <p class="psub">Occupancy on the books across every market in the current selection, weighted by market size, against the same point last year. The steep slope is the booking window, not falling demand. Across the whole portfolio the two lines sit close together — the pacing gap is easier to read month by month on the right, and market by market in the grid above.</p>
+        <svg id="pcurve" viewBox="0 0 700 310" role="img" aria-labelledby="pcurvetitle"><title id="pcurvetitle">Portfolio occupancy on the books by stay month versus same time last year</title></svg>
+        <div class="legend" id="pcurvelegend"></div>
+      </div>
+      <div class="panel">
+        <h3>Monthly gap against last year</h3>
+        <p class="psub">The same variance in estimated room nights, so months can be compared and added. Bars above the line are ahead of last year, below it behind, on the same colour scale as the grid.</p>
+        <svg id="pbars" viewBox="0 0 560 310" role="img" aria-labelledby="pbarstitle"><title id="pbarstitle">Variance against same time last year in room nights, by stay month</title></svg>
+      </div>
+    </div>
+    <button class="ghost tbtn" id="ptbtn" type="button" aria-expanded="false" aria-controls="ptable">View as a table</button>
+    <div class="tablewrap" id="ptable" hidden></div>
+  </section>
+
+  <div id="detailhome">
+  <section id="detail-sec">
+    <div class="shead"><div class="sheadl"><h2 id="dtitle">—</h2></div>
+      <button class="ghost" id="dclose" type="button">Close</button></div>
+    <p class="note" id="dnote"></p>
+    <div class="detailgrid">
+      <div class="panel">
+        <h3>Booking curve</h3>
+        <p class="psub">Occupancy on the books for each future stay month, against the same point last year. The downward slope is the booking window, not falling demand.</p>
+        <svg id="curve" viewBox="0 0 760 320" role="img" aria-labelledby="curvetitle"><title id="curvetitle">Occupancy on the books by stay month versus same time last year</title></svg>
+        <div class="legend" id="curvelegend"></div>
+        <button class="ghost tbtn" id="curvetbtn" type="button" aria-expanded="false" aria-controls="curvetable">View as a table</button>
+        <div class="tablewrap" id="curvetable" hidden></div>
+      </div>
+      <div class="panel">
+        <h3>What the demand is made of</h3>
+        <p class="psub">Occupancy split by segment. Unsold block is group inventory held but not yet bought — it grows with distance and is why Totals overstates far-out demand.</p>
+        <svg id="stack" viewBox="0 0 560 320" role="img" aria-labelledby="stacktitle"><title id="stacktitle">Occupancy by demand segment and stay month</title></svg>
+        <div class="legend" id="stacklegend"></div>
+      </div>
+    </div>
+  </section>
+  </div><!-- /#detailhome -->
+
+  </div><!-- /#view -->
+
+  <div class="foot">
+    <h4>Read this before acting on it</h4>
+    <ul>
+      <li><b>One snapshot.</b> Every figure here is the position at a single as-of date, read across future stay months. It is not a history: how a stay month built over successive weeks needs more than one snapshot, and each weekly export adds one.</li>
+      <li><b>Totals include rooms nobody has bought.</b> Unsold block sits inside Totals and dominates distant months. The default segment here is <b>Sold</b> for that reason; switch to Totals only when you want committed plus held inventory.</li>
+      <li><b>Occupancy is not comparable across stay months.</b> Distant months are low because they are unbooked, not soft. Variance vs last year is the comparable measure.</li>
+      <li><b>Room nights are estimates.</b> Derived as occupancy × market capacity × days, where capacity is the market's average daily rooms. Good for ranking and for weighting markets; not a booked-revenue figure.</li>
+      <li><b>The current month is not demand.</b> At the as-of date part of it has already been stayed, so its occupancy mixes nights slept in with nights on the books. The default window therefore opens the month after — on this snapshot, leaving it in would have added +649k room nights of apparent gain that is simply time passing.</li>
+      <li><b>The last month sits at the edge of the export.</b> Its final days come through empty for every market: that is where the file stops, not zero demand. Amadeus's own subtotal for that month also differs from this one, and occupancy for it is unreliable in the smallest markets. It sits outside the default window; the <i>All months</i> option includes it.</li>
+      <li><b>Markets are airport comp sets, not metros.</b> A 14,404-room "Los Angeles" and a 2,098-room "Cancún" are airport-scoped subsets; do not read them as whole cities.</li>
+    </ul>
+    <div class="footbar"></div>
+    <p class="colophon">Built by <b>Libardo Lambrano</b> as a work sample — marketing analytics and commercial strategy for hotels and travel, in English and Spanish. Open to commercial analytics, revenue strategy and insights roles, including Latin America and Caribbean portfolios and bilingual mandates.
+      <a href="mailto:libardo@syndikomm.com">libardo@syndikomm.com</a> ·
+      <a href="https://www.linkedin.com/in/libardo-lambrano/" target="_blank" rel="noopener">linkedin.com/in/libardo-lambrano</a></p>
+    <p class="srcline">Source: <b>Amadeus Hospitality</b>, <i>Destination Insights — Market Daily Occupancy</i>; 50 market exports, data as of <b id="srcasof">—</b>, pulled <b id="srcrun">—</b>. Amadeus supplies this report <a href="https://www.amadeus-hospitality.com/local-market-report/" target="_blank" rel="noopener">on request at no cost</a>; the figures are Amadeus's and remain theirs. No employer or otherwise confidential data is used here. A red-to-blue colour scale is in the controls above for anyone who finds red and green hard to tell apart.</p>
+  </div>
+</div>
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script id="payload" type="application/json">__DATA__</script>
+<script>
+(function(){
+"use strict";
+const DATA = JSON.parse(document.getElementById("payload").textContent);
+const $ = s => document.querySelector(s);
+
+/* ── state ─────────────────────────────────────────────── */
+const REG=[...new Set(DATA.markets.map(m=>m.r))].sort();
+// Largest region by market count — the default when the region tab is first opened,
+// so the two tabs show genuinely different things.
+const BIGGEST=REG.slice().sort((a,b)=>
+  DATA.markets.filter(m=>m.r===b).length - DATA.markets.filter(m=>m.r===a).length)[0];
+const state = {
+  tab:"all",
+  regions: new Set(REG),
+  regionPick: new Set([BIGGEST]),
+  seg:"Sold", win:"open", measure:"both", sort:"worst", q:"",
+  market: null, table:false
+};
+
+/* ── month window ──────────────────────────────────────────
+   The windows are derived from the export itself, not written down, so
+   pointing the page at a newer snapshot re-labels and re-scopes it with no
+   edits. Two boundaries do the work:
+
+   OPEN_FROM  the first stay month still wholly ahead at the as-of date. The
+              as-of month is deliberately excluded: part of it has already
+              been stayed, so its occupancy mixes actualised nights with
+              nights on the books. At this snapshot that single month carried
+              +649k room nights of the portfolio's apparent gain against last
+              year — more than half of it — which is arithmetic, not demand.
+   LAST_FULL  the last month the export covers completely. Past it the
+              remaining days arrive empty; that is where the file stops, not
+              an absence of demand, and averaging over it is unsafe.       */
+const ASOF_MONTH = String(DATA.asOf).slice(0,7);
+const OPEN_FROM = Math.min(DATA.months.length - 1,
+                           DATA.months.indexOf(ASOF_MONTH) + 1);
+const LAST_FULL = (()=>{
+  for(let i=DATA.months.length-1; i>=0; i--){
+    const whole = DATA.markets.filter(m=>m.days[i] >= m.cal[i]).length;
+    if(whole > DATA.markets.length/2) return i;
+  }
+  return DATA.months.length-1;
+})();
+const WIN_OPEN  = Math.max(1, LAST_FULL - OPEN_FROM + 1);
+const WIN_SHORT = Math.min(6, WIN_OPEN);
+const winRange = (a,n) => `${DATA.labels[a]} \u2013 ${DATA.labels[a+n-1]}`;
+
+function monthIdx(){
+  const all = DATA.months.map((_,i)=>i);
+  if(state.win==="all") return all;
+  const n = state.win==="short" ? WIN_SHORT : WIN_OPEN;
+  return all.slice(OPEN_FROM, OPEN_FROM + n);
+}
+// the control is written from the data for the same reason
+function buildWindowOptions(){
+  const sel=$("#win"); if(!sel) return;
+  sel.innerHTML =
+    `<option value="open">Next ${WIN_OPEN} \u2014 ${winRange(OPEN_FROM,WIN_OPEN)}</option>`+
+    `<option value="short">Next ${WIN_SHORT} \u2014 ${winRange(OPEN_FROM,WIN_SHORT)}</option>`+
+    `<option value="all">All ${DATA.months.length} in the file \u2014 ${winRange(0,DATA.months.length)}</option>`;
+  sel.value = state.win;
+}
+
+/* ── measures ──────────────────────────────────────────── */
+// v[seg][monthIndex] = [occupancy_pct, pickup_pts, stly_pts]
+const OCC=0, PU=1, STLY=2;
+const roomNights = (m,i,pts) => pts/100 * m.cap * m.days[i];
+
+function cellValue(m,i){
+  const t = m.v[state.seg][i];
+  switch(state.measure){
+    case "both":   return t[STLY];
+    case "stlyrn": return roomNights(m,i,t[STLY]);
+    default:       return t[STLY];
+  }
+}
+const MEASURE = {
+  // Two numbers per cell, one colour job: the tint always encodes the variance,
+  // never the occupancy level (a low far-out month is unbooked, not weak).
+  both:   {label:"occupancy on the books with its variance against the same time last year",
+           unit:"pts", diverging:true, twoLine:true, fmt:v=>fmtPts(v)},
+  stly:   {label:"variance against the same time last year, in percentage points",
+           unit:"pts", diverging:true,  fmt:v=>fmtPts(v)},
+  stlyrn: {label:"variance against the same time last year, in estimated room nights",
+           unit:"room nights", diverging:true, fmt:v=>fmtSigned(v)}
+};
+
+/* ── formatters ────────────────────────────────────────── */
+const nf = new Intl.NumberFormat("en-US");
+const fmtInt   = v => nf.format(Math.round(v));
+const fmtSigned= v => (v>0?"+":v<0?"−":"") + nf.format(Math.abs(Math.round(v)));
+const fmtPts   = v => (v>0?"+":v<0?"−":"") + Math.abs(v).toFixed(2);
+const fmtK     = v => { const a=Math.abs(v);
+  const s = a>=1e6 ? (a/1e6).toFixed(a>=1e7?0:1)+"M" : a>=1000 ? Math.round(a/1000)+"k" : Math.round(a)+"";
+  return (v<0?"−":v>0?"":"")+s; };
+
+/* ── colour ────────────────────────────────────────────── */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function hex2rgb(h){h=h.replace("#","");
+  if(h.length===3) h=h.split("").map(c=>c+c).join("");
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function mix(a,b,t){ // gamma-aware so midtones don't go muddy
+  const A=hex2rgb(a), B=hex2rgb(b);
+  const c = A.map((v,i)=>Math.round(255*Math.pow(
+    (1-t)*Math.pow(v/255,2.2) + t*Math.pow(B[i]/255,2.2), 1/2.2)));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function rampColor(v,max){
+  const mid=css("--pole-mid");
+  if(!isFinite(v)||max<=0) return mid;
+  // sqrt easing: small variances stay visible without exaggerating big ones
+  const t = Math.min(1, Math.sqrt(Math.abs(v)/max));
+  return mix(mid, v<0 ? css("--pole-behind") : css("--pole-ahead"), t);
+}
+// ink that stays legible on top of a ramp cell
+const cellInk = t => t>0.55 ? "#FFFFFF" : css("--body");
+
+/* ── selection ─────────────────────────────────────────── */
+const qMatch = (m,q) =>
+  m.n.toLowerCase().includes(q) || m.r.toLowerCase().includes(q) || m.c.toLowerCase().includes(q);
+
+function visibleMarkets(){
+  let list = DATA.markets.filter(m=>state.regions.has(m.r));
+  if(state.q){ const q=state.q.toLowerCase();
+    list = list.filter(m=>qMatch(m,q)); }
+  const idx=monthIdx();
+  const summary = m => idx.reduce((s,i)=>s+roomNights(m,i,m.v[state.seg][i][STLY]),0);
+  const sorters = {
+    worst:(a,b)=>summary(a)-summary(b),
+    best:(a,b)=>summary(b)-summary(a),
+    region:(a,b)=>a.r.localeCompare(b.r)||a.n.localeCompare(b.n),
+    cap:(a,b)=>b.cap-a.cap,
+    az:(a,b)=>a.n.localeCompare(b.n)
+  };
+  return list.slice().sort(sorters[state.sort]);
+}
+// One synthetic "market" standing for the whole selection. Capacity and days are
+// chosen so that cap * days equals the summed capacity-days of its members, which
+// makes roomNights() on this row identical to the sum over the real markets.
+function aggregateRow(list){
+  const n=list.length;
+  const cap=list.reduce((a,m)=>a+m.cap,0);
+  const days=[], cal=[], v={};
+  DATA.months.forEach((_,i)=>{
+    const capDays=list.reduce((a,m)=>a+m.cap*m.days[i],0);
+    days.push(cap? capDays/cap : 0);
+    cal.push(list.length? list[0].cal[i] : 0);
+  });
+  for(const seg of DATA.segs){
+    v[seg]=DATA.months.map((_,i)=>{
+      const w=list.reduce((a,m)=>a+m.cap*m.days[i],0);
+      if(!w) return [0,0,0];
+      return [0,1,2].map(k =>
+        list.reduce((a,m)=>a+m.v[seg][i][k]*m.cap*m.days[i],0)/w);
+    });
+  }
+  return {n:"All Markets", r:"All regions", c:"", cap, days, cal, v, agg:true, count:n};
+}
+
+function rowSummary(m){ // room nights vs LY across the window
+  return monthIdx().reduce((s,i)=>s+roomNights(m,i,m.v[state.seg][i][STLY]),0);
+}
+
+/* ── tooltip ───────────────────────────────────────────── */
+const tip=$("#tip");
+function showTip(html,x,y){
+  tip.innerHTML=html; tip.classList.add("on");
+  const r=tip.getBoundingClientRect();
+  let left=x+14, top=y-r.height-12;
+  if(left+r.width>innerWidth-10) left=x-r.width-14;
+  if(left<8) left=8;
+  if(top<8) top=y+18;
+  tip.style.left=left+"px"; tip.style.top=top+"px";
+}
+const hideTip=()=>tip.classList.remove("on");
+const tipRow=(k,v)=>`<div class="r"><span>${k}</span><span>${v}</span></div>`;
+
+/* ── KPI strip ─────────────────────────────────────────── */
+function renderKpis(){
+  const idx=monthIdx(), list=visibleMarkets();
+  let onBooks=0, vsLy=0, capDays=0, ahead=0, behind=0;
+  for(const m of list){
+    for(const i of idx){
+      const t=m.v[state.seg][i];
+      onBooks += roomNights(m,i,t[OCC]);
+      vsLy    += roomNights(m,i,t[STLY]);
+      capDays += m.cap*m.days[i];
+    }
+    (rowSummary(m)<0 ? behind++ : ahead++);
+  }
+  const vsLyPts = capDays? vsLy/capDays*100 : 0;
+  const segName = $("#seg").selectedOptions[0].text.replace(/ \(.*/,"");
+
+  // the stay month with the widest room-night gap against last year
+  let soft={label:"—", vsLy:0, pts:0};
+  for(const d of portfolioSeries()){
+    if(d.vsLy < soft.vsLy || soft.label==="—"){
+      soft={ label:DATA.labels[d.i], vsLy:d.vsLy,
+             pts:d.capDays? d.vsLy/d.capDays*100 : 0 };
+    }
+  }
+  const mLabel  = idx.length===DATA.months.length ? `all ${DATA.months.length} stay months`
+                : `${DATA.labels[idx[0]]} – ${DATA.labels[idx[idx.length-1]]}`;
+  const tiles=[
+    {label:"Room nights on the books", val:fmtInt(onBooks),
+     sub:`${segName} demand · ${mLabel}`},
+    {label:"Versus same time last year", val:fmtSigned(vsLy),
+     cls:vsLy<0?"neg":"pos", sub:`room nights · ${fmtPts(vsLyPts)} pts of occupancy`},
+    {label:"Softest stay month", val:soft.label,
+     cls:soft.vsLy<0?"neg":undefined,
+     sub:`${fmtSigned(soft.vsLy)} room nights vs last year · ${fmtPts(soft.pts)} pts`},
+    {label:"Markets behind last year", val:`${behind}`,
+     cls:behind>ahead?"neg":undefined, sub:`of ${list.length} shown · ${ahead} ahead`}
+  ];
+  $("#kpis").innerHTML = tiles.map(t=>`
+    <div class="kpi">
+      <p class="label">${t.label}</p>
+      <div class="val ${t.cls||""}">${t.val}</div>
+      <div class="sub">${t.sub}</div>
+    </div>`).join("");
+}
+
+/* ── heatmap ───────────────────────────────────────────── */
+function renderHeatmap(){
+  const idx=monthIdx(), list=visibleMarkets(), hm=$("#hm");
+  const M=MEASURE[state.measure];
+  // All markets tab: one aggregate line, so the trend charts sit high on the page.
+  const rows = state.tab==="all" ? [aggregateRow(list)] : list;
+  let max=0;
+  for(const m of rows) for(const i of idx){ const v=cellValue(m,i); if(isFinite(v)) max=Math.max(max,Math.abs(v)); }
+
+  const two = !!M.twoLine;
+  hm.classList.toggle("twoline", two);
+  // Minimums are set to the widest number each column actually has to hold, not
+  // to the old header text: 11 stay months plus both end columns now fit inside
+  // a ~900px panel, and 1fr still lets them breathe on a wide screen.
+  hm.style.gridTemplateColumns=`minmax(112px,auto) repeat(${idx.length},minmax(${two?50:38}px,1fr)) minmax(58px,auto)`;
+  const parts=[];
+  // Two header rows. The year is stated once, spanning its own months, and the
+  // month names sit beneath it — the year repeated over every column was
+  // eleven redundant labels and it forced the columns wider than the numbers
+  // needed. The corner and the window column span both rows.
+  const yearRuns = [];
+  for(const i of idx){
+    const y = DATA.labels[i].split(" ")[1];
+    const last = yearRuns[yearRuns.length-1];
+    if(last && last.y === y) last.n++; else yearRuns.push({y, n:1});
+  }
+  parts.push(`<div class="colhead corner spanrows">Market</div>`);
+  for(const g of yearRuns)
+    parts.push(`<div class="yearhead" style="grid-column:span ${g.n}">${g.y}</div>`);
+  parts.push(`<div class="colhead spanrows winhead">Window<br>vs LY</div>`);
+  for(const i of idx) parts.push(`<div class="colhead mon">${DATA.labels[i].split(" ")[0]}</div>`);
+
+  let lastRegion=null;
+  rows.forEach(m=>{
+    if(!m.agg && state.sort==="region" && m.r!==lastRegion){
+      lastRegion=m.r; parts.push(`<div class="regionhead">${m.r}</div>`);
+    }
+    const sel = m.n===state.market ? " rowsel":"";
+    const sub = m.agg ? `${m.count} market${m.count===1?"":"s"}` : fmtK(m.cap);
+    const nameCell = m.agg
+      ? esc(m.n)
+      : `<span class="mlink"><span class="mtext">${esc(m.n)}</span>`+
+        `<svg class="chev" width="6" height="10" viewBox="0 0 7 11" aria-hidden="true">`+
+        `<path d="M1 1l4.6 4.5L1 10" fill="none" stroke="currentColor" stroke-width="2"`+
+        ` stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+    parts.push(`<div class="rowlab${sel}${m.agg?" aggrow":""}"${m.agg?"":` data-mk="${esc(m.n)}"`}>${
+      nameCell} <span class="cap">${sub}</span></div>`);
+    for(const i of idx){
+      const v=cellValue(m,i);
+      const partial = m.days[i]<m.cal[i];
+      const t=Math.min(1,Math.sqrt(Math.abs(v)/(max||1)));
+      // Red↔green carries poorly for red-green colour blindness, so the signed
+      // number is shown on more cells: the sign never rests on hue alone.
+      const show = Math.abs(v) >= max*0.12;
+      const occ = m.v[state.seg][i][OCC];
+      const body = two
+        ? `<span class="c1">${occ.toFixed(1)}%</span><span class="c2">${fmtPts(v)}</span>`
+        : (show ? (state.measure==="stlyrn" ? fmtK(v) : fmtPts(v)) : "");
+      const label = two
+        ? `${esc(m.n)}, ${DATA.labels[i]}, ${occ.toFixed(1)}% on the books, ${M.fmt(v)} pts versus last year`
+        : `${esc(m.n)}, ${DATA.labels[i]}, ${M.fmt(v)} ${M.unit}`;
+      parts.push(
+        `<${m.agg?"div":"button"} class="cell${m.agg?" aggcell":""}" role="gridcell"${
+            m.agg?"":` tabindex="-1" data-mk="${esc(m.n)}"`} data-i="${i}"
+          style="background:${rampColor(v,max)};color:${cellInk(t)}"
+          aria-label="${label}${partial?", partial month":""}">${body}</${m.agg?"div":"button"}>`);
+    }
+    const s=rowSummary(m);
+    parts.push(`<div class="total" style="color:${s<0?"var(--pole-behind)":"var(--pole-ahead)"}">${fmtK(s)}</div>`);
+    if(!m.agg && m.n===state.market) parts.push(`<div class="detailslot"></div>`);
+  });
+  // While a market is open the live #detail-sec node sits inside the grid, so it
+  // must be parked back home before innerHTML wipes the grid — otherwise the node
+  // is destroyed and its table-toggle listeners go with it.
+  parkDetail();
+  hm.innerHTML=parts.join("");
+  placeDetail();
+
+  // scale legend
+  $("#scalelegend").innerHTML =
+    `<span>${two?"Colour = variance \u00b7 ":""}Behind LY</span><span class="bar"></span><span>Ahead</span>
+     <span style="margin-left:6px">± ${M.unit==="room nights"?fmtK(max):max.toFixed(1)} ${M.unit}</span>`;
+
+  $("#hmtitle").textContent = state.tab==="all"
+    ? "Pacing by stay month" : "Pacing by market and stay month";
+  if(state.tab==="all"){
+    $("#hmnote").textContent =
+      `Every market combined, weighted by market size: occupancy on the books for each stay month `+
+      `with its variance against the same time last year beneath, on ${segLabel().toLowerCase()}. `+
+      `Use the By region tab to see individual markets.`;
+    if(state.table) renderHmTable();
+    return;
+  }
+  $("#hmnote").textContent = two
+    ? `Each cell shows the occupancy on the books for that stay month, with its variance against the same time last year beneath, on ${segLabel().toLowerCase()}. The tint encodes the variance only \u2014 a low occupancy far out means unbooked, not weak. Click a market to expand its detail underneath.`
+    : `Each cell is one market's ${M.label}, for one stay month on ${segLabel().toLowerCase()}. ${
+        document.documentElement.dataset.scale==="rb" ? "Blue" : "Green"
+      } is ahead of last year, red is behind; the strongest cells carry a signed number — every value is in the table. Click a market to expand its detail underneath.`;
+
+  if(state.table) renderHmTable();
+}
+const esc = s => s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderHmTable(){
+  const idx=monthIdx(), list=visibleMarkets(), M=MEASURE[state.measure];
+  const head = `<tr><th>Market</th><th>Region</th><th>Capacity</th>${
+    idx.map(i=>`<th>${DATA.labels[i]}</th>`).join("")}<th>Window vs LY</th></tr>`;
+  const body = list.map(m=>{
+    const s=rowSummary(m);
+    return `<tr${m.n===state.market?' class="sel"':""}><td>${esc(m.n)}</td><td>${esc(m.r)}</td><td>${fmtInt(m.cap)}</td>${
+      idx.map(i=>{const v=cellValue(m,i);
+        const cellTxt = state.measure==="both"
+          ? `${m.v[state.seg][i][OCC].toFixed(1)}% <span style="opacity:.7">${fmtPts(v)}</span>`
+          : M.fmt(v);
+        return `<td class="${v<0?"neg":v>0?"pos":""}">${cellTxt}</td>`;}).join("")
+      }<td class="${s<0?"neg":"pos"}">${fmtSigned(s)}</td></tr>`;
+  }).join("");
+  $("#hmtable").innerHTML =
+    `<p class="note">${M.label} in ${M.unit}${state.measure==="stlyrn"?"":""}, by market and stay month. Same numbers as the grid above.</p>
+     <div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+/* The detail section is moved, not re-created, so the listeners on its
+   "View as a table" toggle survive every re-render of the grid. */
+function parkDetail(){
+  const sec=$("#detail-sec"), home=$("#detailhome");
+  if(sec && home && sec.parentElement!==home){ sec.style.width=""; home.appendChild(sec); }
+}
+function placeDetail(){
+  const sec=$("#detail-sec"), slot=$("#hm .detailslot"), home=$("#detailhome");
+  if(!sec) return;
+  if(slot && state.tab!=="all" && state.market){
+    if(sec.parentElement!==slot) slot.appendChild(sec);
+    sizeDetail();
+  } else if(home && sec.parentElement!==home){
+    home.appendChild(sec);
+  }
+}
+// The panel is stuck to the scrollport's left edge, so it needs that width.
+function sizeDetail(){
+  const sec=$("#detail-sec"), wrap=$(".hmwrap");
+  if(!sec || !wrap || !sec.closest(".detailslot")) return;
+  sec.style.width = wrap.clientWidth + "px";
+}
+addEventListener("resize", sizeDetail);
+
+/* ── booking curve ─────────────────────────────────────── */
+function renderCurve(){
+  const m = DATA.markets.find(x=>x.n===state.market); if(!m) return;
+  const idx=monthIdx(), svg=$("#curve");
+  const W=760,H=320, L=48,R=62,T=16,B=44;
+  const iw=W-L-R, ih=H-T-B;
+  const cur = idx.map(i=>m.v[state.seg][i][OCC]);
+  const ly  = idx.map(i=>m.v[state.seg][i][OCC]-m.v[state.seg][i][STLY]);
+  const maxY = Math.max(10, Math.ceil(Math.max(...cur,...ly)/10)*10);
+  const x = k => L + (idx.length===1? iw/2 : k*iw/(idx.length-1));
+  const y = v => T + ih - (v/maxY)*ih;
+
+  const ticks=[]; const step = maxY<=20?5:maxY<=50?10:20;
+  for(let v=0;v<=maxY;v+=step) ticks.push(v);
+
+  const path = arr => arr.map((v,k)=>`${k?"L":"M"}${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const area = cur.map((v,k)=>`${k?"L":"M"}${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(" ")
+             + ` L${x(cur.length-1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`;
+
+  const g=[];
+  g.push(`<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${css("--series-now")}" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="${css("--series-now")}" stop-opacity="0"/></linearGradient></defs>`);
+  ticks.forEach(v=>{
+    g.push(`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="${css("--grid")}" stroke-width="1" fill="none"/>`);
+    g.push(`<text x="${L-10}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="${css("--muted")}" font-family="inherit">${v}%</text>`);
+  });
+  idx.forEach((i,k)=>{
+    if(idx.length<=12 || k%2===0)
+      g.push(`<text x="${x(k)}" y="${H-B+18}" text-anchor="middle" font-size="10" fill="${css("--muted")}" font-family="inherit">${DATA.labels[i].split(" ")[0]}</text>`);
+    if(k===0 || DATA.labels[i].startsWith("Jan"))
+      g.push(`<text x="${x(k)}" y="${H-B+32}" text-anchor="middle" font-size="9" fill="${css("--muted")}" font-family="inherit">${DATA.labels[i].split(" ")[1]}</text>`);
+  });
+  g.push(`<path d="${area}" fill="url(#cg)" stroke="none"/>`);
+  g.push(`<path d="${path(ly)}" fill="none" stroke="${css("--ly-line")}" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>`);
+  g.push(`<path d="${path(cur)}" fill="none" stroke="${css("--series-now")}" stroke-width="2" stroke-linecap="round"/>`);
+  // endpoint markers + direct labels (selective: first and last only)
+  [[0,"start"],[idx.length-1,"end"]].forEach(([k,pos])=>{
+    g.push(`<circle cx="${x(k)}" cy="${y(cur[k])}" r="4.5" fill="${css("--series-now")}" stroke="${css("--panel")}" stroke-width="2"/>`);
+  });
+  // Both series converge toward zero at the far end, so labels there collide.
+  // One combined label on the nearest month instead — the month being acted on.
+  g.push(`<text x="${x(0)+11}" y="${y(cur[0])-10}" font-size="11.5" font-family="inherit">`+
+    `<tspan font-weight="700" fill="${css("--series-now")}">${cur[0].toFixed(1)}% now</tspan>`+
+    `<tspan fill="${css("--muted")}"> vs </tspan>`+
+    `<tspan font-weight="600" fill="${css("--ly-line")}">${ly[0].toFixed(1)}% LY</tspan></text>`);
+  // hover layer
+  idx.forEach((i,k)=>{
+    const w=iw/idx.length;
+    g.push(`<rect class="hit" x="${(x(k)-w/2).toFixed(1)}" y="${T}" width="${w.toFixed(1)}" height="${ih}"
+      fill="transparent" data-i="${i}" data-k="${k}"/>`);
+  });
+  g.push(`<line id="cross" x1="0" y1="${T}" x2="0" y2="${T+ih}" stroke="${css("--muted")}" stroke-width="1" fill="none" opacity="0"/>`);
+  svg.innerHTML = `<title id="curvetitle">${esc(m.n)}: occupancy on the books by stay month versus same time last year</title>`+g.join("");
+
+  $("#curvelegend").innerHTML =
+    `<span><i class="ln" style="background:${css("--series-now")}"></i> On the books now</span>
+     <span><i class="ln" style="background:${css("--ly-line")}"></i> Same time last year</span>`;
+
+  // table twin
+  $("#curvetable").innerHTML = `<table><thead><tr><th>Stay month</th><th>On books</th><th>Last year</th><th>vs LY</th><th>Room nights vs LY</th></tr></thead><tbody>${
+    idx.map((i,k)=>{const d=m.v[state.seg][i][STLY];
+      return `<tr><td>${DATA.labels[i]}</td><td>${cur[k].toFixed(1)}%</td><td>${ly[k].toFixed(1)}%</td><td class="${d<0?"neg":"pos"}">${fmtPts(d)}</td><td class="${d<0?"neg":"pos"}">${fmtSigned(roomNights(m,i,d))}</td></tr>`;
+    }).join("")}</tbody></table>`;
+
+  svg.querySelectorAll(".hit").forEach(r=>{
+    const k=+r.dataset.k, i=+r.dataset.i;
+    const enter=ev=>{
+      const cx=x(k); const cl=svg.querySelector("#cross");
+      cl.setAttribute("x1",cx); cl.setAttribute("x2",cx); cl.setAttribute("opacity","1");
+      const d=m.v[state.seg][i][STLY], p=m.v[state.seg][i][PU];
+      showTip(`<div class="t">${esc(m.n)} · ${DATA.labels[i]}</div>`+
+        tipRow("On the books", cur[k].toFixed(1)+"%")+
+        tipRow("Same time LY", ly[k].toFixed(1)+"%")+
+        tipRow("Variance", fmtPts(d)+" pts")+
+        tipRow("Room nights vs LY", fmtSigned(roomNights(m,i,d)))+
+        tipRow("Pickup this week", fmtPts(p)+" pts"),
+        ev.clientX, ev.clientY);
+    };
+    r.addEventListener("mousemove",enter);
+    r.addEventListener("mouseleave",()=>{hideTip(); svg.querySelector("#cross").setAttribute("opacity","0");});
+  });
+}
+
+/* ── segment stack ─────────────────────────────────────── */
+const STACK=[["Transient","--seg-1"],["Group Sold","--seg-2"],["Unsold Block","--seg-3"],["Other","--seg-4"]];
+function renderStack(){
+  const m=DATA.markets.find(x=>x.n===state.market); if(!m) return;
+  const idx=monthIdx(), svg=$("#stack");
+  const W=560,H=320,L=42,R=14,T=16,B=44, iw=W-L-R, ih=H-T-B;
+  const tot = idx.map(i=>m.v.Totals[i][OCC]);
+  const maxY=Math.max(10,Math.ceil(Math.max(...tot)/10)*10);
+  const bw=Math.min(28, iw/idx.length-4);
+  const x=k=>L+(k+0.5)*(iw/idx.length);
+  const y=v=>T+ih-(v/maxY)*ih;
+  const g=[];
+  const step=maxY<=20?5:maxY<=50?10:20;
+  for(let v=0;v<=maxY;v+=step){
+    g.push(`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="${css("--grid")}" stroke-width="1" fill="none"/>`);
+    g.push(`<text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="${css("--muted")}" font-family="inherit">${v}%</text>`);
+  }
+  idx.forEach((i,k)=>{
+    let acc=0;
+    STACK.forEach(([seg,tok])=>{
+      const v=m.v[seg][i][OCC]; if(v<=0.004){acc+=v; return;}
+      const y0=y(acc), y1=y(acc+v);
+      const h=Math.max(0.8,(y0-y1)-2);        // 2px surface gap between segments
+      g.push(`<rect x="${(x(k)-bw/2).toFixed(1)}" y="${y1.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}"
+        rx="1.5" fill="${css(tok)}" data-i="${i}" data-seg="${seg}" class="sq"/>`);
+      acc+=v;
+    });
+    if(idx.length<=12 || k%2===0)
+      g.push(`<text x="${x(k)}" y="${H-B+18}" text-anchor="middle" font-size="10" fill="${css("--muted")}" font-family="inherit">${DATA.labels[i].split(" ")[0]}</text>`);
+  });
+  svg.innerHTML=`<title id="stacktitle">${esc(m.n)}: occupancy by demand segment and stay month</title>`+g.join("");
+  $("#stacklegend").innerHTML = STACK.map(([seg,tok])=>
+    `<span><i style="background:${css(tok)}"></i> ${seg==="Group Sold"?"Group sold":seg==="Unsold Block"?"Unsold block":seg}</span>`).join("");
+
+  svg.querySelectorAll(".sq").forEach(r=>{
+    const i=+r.dataset.i, seg=r.dataset.seg;
+    r.addEventListener("mousemove",ev=>{
+      const t=m.v[seg][i];
+      showTip(`<div class="t">${esc(m.n)} · ${DATA.labels[i]}</div>`+
+        tipRow("Segment", seg)+
+        tipRow("Occupancy", t[OCC].toFixed(2)+"%")+
+        tipRow("Share of total", (t[OCC]/Math.max(0.0001,m.v.Totals[i][OCC])*100).toFixed(0)+"%")+
+        tipRow("vs last year", fmtPts(t[STLY])+" pts"), ev.clientX, ev.clientY);
+    });
+    r.addEventListener("mouseleave",hideTip);
+  });
+}
+
+/* ── portfolio trend by stay month ────────────── */
+// Portfolio occupancy is room-night weighted: a 98,321-room market must not
+// count the same as a 2,098-room one, which a plain average would do.
+function portfolioSeries(){
+  const idx=monthIdx(), list=visibleMarkets();
+  return idx.map(i=>{
+    let onBooks=0, lyBooks=0, capDays=0, vsLy=0;
+    for(const m of list){
+      const t=m.v[state.seg][i], cd=m.cap*m.days[i];
+      onBooks += t[OCC]/100*cd;
+      lyBooks += (t[OCC]-t[STLY])/100*cd;
+      vsLy    += roomNights(m,i,t[STLY]);
+      capDays += cd;
+    }
+    return { i, cur: capDays? onBooks/capDays*100 : 0,
+                ly: capDays? lyBooks/capDays*100 : 0, vsLy, capDays };
+  });
+}
+
+function renderTrend(){
+  const S=portfolioSeries(), list=visibleMarkets();
+  const segName=$("#seg").selectedOptions[0].text.replace(/ \(.*/,"").toLowerCase();
+  $("#trendnote").textContent =
+    `${segName} demand across all ${list.length} markets, weighted by market size. `+
+    `The segment and stay-month filters above apply.`;
+
+  /* ── left: two-line curve, one % axis ── */
+  (function(){
+    const svg=$("#pcurve"), W=700,H=310,L=46,R=58,T=14,B=46, iw=W-L-R, ih=H-T-B;
+    const maxY=Math.max(10, Math.ceil(Math.max(...S.map(d=>Math.max(d.cur,d.ly)))/10)*10);
+    const x=k=>L+(S.length===1? iw/2 : k*iw/(S.length-1));
+    const y=v=>T+ih-(v/maxY)*ih;
+    const g=[];
+    g.push(`<defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${css("--series-now")}" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="${css("--series-now")}" stop-opacity="0"/></linearGradient></defs>`);
+    const step=maxY<=20?5:maxY<=50?10:20;
+    for(let v=0;v<=maxY;v+=step){
+      g.push(`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="${css("--grid")}" stroke-width="1" fill="none"/>`);
+      g.push(`<text x="${L-9}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="${css("--muted")}" font-family="inherit">${v}%</text>`);
+    }
+    S.forEach((d,k)=>{
+      if(S.length<=12 || k%2===0)
+        g.push(`<text x="${x(k)}" y="${H-B+18}" text-anchor="middle" font-size="10" fill="${css("--muted")}" font-family="inherit">${DATA.labels[d.i].split(" ")[0]}</text>`);
+      if(k===0 || DATA.labels[d.i].startsWith("Jan"))
+        g.push(`<text x="${x(k)}" y="${H-B+32}" text-anchor="middle" font-size="9" fill="${css("--muted")}" font-family="inherit">${DATA.labels[d.i].split(" ")[1]}</text>`);
+    });
+    const line = f => S.map((d,k)=>`${k?"L":"M"}${x(k).toFixed(1)},${y(f(d)).toFixed(1)}`).join(" ");
+    g.push(`<path d="${line(d=>d.cur)} L${x(S.length-1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z" fill="url(#pg)" stroke="none"/>`);
+    g.push(`<path d="${line(d=>d.ly)}" fill="none" stroke="${css("--ly-line")}" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>`);
+    g.push(`<path d="${line(d=>d.cur)}" fill="none" stroke="${css("--series-now")}" stroke-width="2.4" stroke-linecap="round"/>`);
+    [0,S.length-1].forEach(k=>g.push(
+      `<circle cx="${x(k)}" cy="${y(S[k].cur)}" r="4.5" fill="${css("--series-now")}" stroke="${css("--panel")}" stroke-width="2"/>`));
+    // One label on the nearest month — the two lines sit close at portfolio
+    // level, so a stacked pair would collide. Side by side instead.
+    g.push(`<text x="${x(0)+11}" y="${y(S[0].cur)-10}" font-size="11.5" font-family="inherit">`+
+      `<tspan font-weight="700" fill="${css("--series-now")}">${S[0].cur.toFixed(1)}% now</tspan>`+
+      `<tspan fill="${css("--muted")}"> vs </tspan>`+
+      `<tspan font-weight="600" fill="${css("--ly-line")}">${S[0].ly.toFixed(1)}% LY</tspan></text>`);
+    g.push(`<line id="pcross" x1="0" y1="${T}" x2="0" y2="${T+ih}" stroke="${css("--muted")}" stroke-width="1" fill="none" opacity="0"/>`);
+    S.forEach((d,k)=>{ const w=iw/S.length;
+      g.push(`<rect class="phit" x="${(x(k)-w/2).toFixed(1)}" y="${T}" width="${w.toFixed(1)}" height="${ih}" fill="transparent" data-k="${k}"/>`); });
+    svg.innerHTML=`<title id="pcurvetitle">Portfolio occupancy on the books by stay month versus same time last year</title>`+g.join("");
+    $("#pcurvelegend").innerHTML=
+      `<span><i class="ln" style="background:${css("--series-now")}"></i> On the books now</span>
+       <span><i class="ln" style="background:${css("--ly-line")}"></i> Same time last year</span>`;
+    svg.querySelectorAll(".phit").forEach(r=>{
+      const k=+r.dataset.k, d=S[k];
+      r.addEventListener("mousemove",ev=>{
+        const cl=svg.querySelector("#pcross");
+        cl.setAttribute("x1",x(k)); cl.setAttribute("x2",x(k)); cl.setAttribute("opacity","1");
+        showTip(`<div class="t">${DATA.labels[d.i]} \u00b7 ${list.length} markets</div>`+
+          tipRow("On the books", d.cur.toFixed(1)+"%")+
+          tipRow("Same time LY", d.ly.toFixed(1)+"%")+
+          tipRow("Variance", fmtPts(d.cur-d.ly)+" pts")+
+          tipRow("Room nights vs LY", fmtSigned(d.vsLy)), ev.clientX, ev.clientY);
+      });
+      r.addEventListener("mouseleave",()=>{hideTip(); svg.querySelector("#pcross").setAttribute("opacity","0");});
+    });
+  })();
+
+  /* ── right: variance bars, room nights, one axis ── */
+  (function(){
+    const svg=$("#pbars"), W=560,H=310,L=54,R=14,T=16,B=46, iw=W-L-R, ih=H-T-B;
+    const mx=Math.max(...S.map(d=>Math.abs(d.vsLy)),1);
+    const nice=Math.pow(10,Math.floor(Math.log10(mx)));
+    const top=Math.ceil(mx/nice)*nice;
+    const y=v=>T+ih/2-(v/top)*(ih/2);
+    const bw=Math.min(26, iw/S.length-5);
+    const x=k=>L+(k+0.5)*(iw/S.length);
+    const g=[];
+    [top,top/2,0,-top/2,-top].forEach(v=>{
+      g.push(`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="${v===0?css("--hairline"):css("--grid")}" stroke-width="1" fill="none"/>`);
+      g.push(`<text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="${css("--muted")}" font-family="inherit">${fmtK(v)}</text>`);
+    });
+    let worst=0; S.forEach((d,k)=>{ if(d.vsLy<S[worst].vsLy) worst=k; });
+    S.forEach((d,k)=>{
+      const h=Math.abs(y(d.vsLy)-y(0));
+      const top_=d.vsLy>=0? y(d.vsLy) : y(0);
+      g.push(`<rect class="pbar" x="${(x(k)-bw/2).toFixed(1)}" y="${top_.toFixed(1)}" width="${bw.toFixed(1)}"
+        height="${Math.max(1,h).toFixed(1)}" rx="2"
+        fill="${d.vsLy<0?css("--pole-behind"):css("--pole-ahead")}" data-k="${k}"/>`);
+      if(S.length<=12 || k%2===0)
+        g.push(`<text x="${x(k)}" y="${H-B+18}" text-anchor="middle" font-size="10" fill="${css("--muted")}" font-family="inherit">${DATA.labels[d.i].split(" ")[0]}</text>`);
+    });
+    // label only the single worst month — the one that needs a decision
+    const d=S[worst];
+    if(d.vsLy<0) g.push(`<text x="${x(worst)}" y="${(y(d.vsLy)+15).toFixed(1)}" text-anchor="middle"
+        font-size="10.5" font-weight="700" fill="${css("--pole-behind")}" font-family="inherit">${fmtK(d.vsLy)}</text>`);
+    svg.innerHTML=`<title id="pbarstitle">Variance against same time last year in room nights, by stay month</title>`+g.join("");
+    svg.querySelectorAll(".pbar").forEach(r=>{
+      const d=S[+r.dataset.k];
+      r.addEventListener("mousemove",ev=>showTip(
+        `<div class="t">${DATA.labels[d.i]}</div>`+
+        tipRow("Room nights vs LY", fmtSigned(d.vsLy))+
+        tipRow("In occupancy", fmtPts(d.cur-d.ly)+" pts")+
+        tipRow("On the books", d.cur.toFixed(1)+"%"), ev.clientX, ev.clientY));
+      r.addEventListener("mouseleave",hideTip);
+    });
+    $("#ptable").innerHTML=`<table><thead><tr><th>Stay month</th><th>On books</th><th>Last year</th><th>vs LY</th><th>Room nights vs LY</th></tr></thead><tbody>${
+      S.map(d=>`<tr><td>${DATA.labels[d.i]}</td><td>${d.cur.toFixed(1)}%</td><td>${d.ly.toFixed(1)}%</td>`+
+        `<td class="${d.cur-d.ly<0?"neg":"pos"}">${fmtPts(d.cur-d.ly)}</td>`+
+        `<td class="${d.vsLy<0?"neg":"pos"}">${fmtSigned(d.vsLy)}</td></tr>`).join("")}</tbody></table>`;
+  })();
+}
+
+
+/* ── detail header ─────────────────────────────────────── */
+function renderDetailHead(){
+  const m=DATA.markets.find(x=>x.n===state.market); if(!m) return;
+  const s=rowSummary(m), idx=monthIdx();
+  const capDays=idx.reduce((a,i)=>a+m.cap*m.days[i],0);
+  const pts=capDays? s/capDays*100:0;
+  $("#dtitle").textContent=m.n;
+  $("#dnote").innerHTML=`${esc(m.r)} · ${fmtInt(m.cap)} rooms · across ${
+    idx.length} stay months this market is <b style="color:${s<0?"var(--pole-behind)":"var(--pole-ahead)"}">${
+    fmtSigned(s)} room nights</b> (${fmtPts(pts)} pts) against the same time last year on ${
+    $("#seg").selectedOptions[0].text.replace(/ \(.*/,"").toLowerCase()} demand.`;
+}
+
+/* ── region comparison ─────────────────────────────────── */
+// Always covers every region, whatever the current filter: the point of the
+// table is to place the selected region against the others.
+function regionTotals(){
+  const idx=monthIdx();
+  const byReg=new Map();
+  for(const m of DATA.markets){
+    let r=byReg.get(m.r);
+    if(!r){ r={region:m.r, markets:0, onBooks:0, vsLy:0, capDays:0, behind:0}; byReg.set(m.r,r); }
+    r.markets++;
+    for(const i of idx){
+      const t=m.v[state.seg][i];
+      r.onBooks += roomNights(m,i,t[OCC]);
+      r.vsLy    += roomNights(m,i,t[STLY]);
+      r.capDays += m.cap*m.days[i];
+    }
+    if(rowSummary(m)<0) r.behind++;
+  }
+  return [...byReg.values()].sort((a,b)=>a.vsLy-b.vsLy);
+}
+
+function renderRegionCompare(){
+  const rows=regionTotals();
+  // Level and change are paired per measure, so neither column can be read as the other.
+  const head=`<thead><tr><th>Region</th><th>Markets</th>
+    <th>Occupancy on books</th><th>Occupancy vs LY (pts)</th>
+    <th>Room nights on books</th><th>Room nights vs LY</th>
+    <th>Markets behind</th></tr></thead>`;
+  const body=rows.map(r=>{
+    const occ = r.capDays? r.onBooks/r.capDays*100 : 0;
+    const pts = r.capDays? r.vsLy/r.capDays*100 : 0;
+    const on  = state.regions.has(r.region) && state.regions.size<REG.length;
+    return `<tr class="${on?"on":""}" data-reg="${esc(r.region)}" tabindex="0" role="button"
+      aria-label="Filter to ${esc(r.region)}">
+      <td class="mk"><span class="rlink"><span class="rtext">${esc(r.region)}</span>`+
+        `<svg class="chev" width="7" height="11" viewBox="0 0 7 11" aria-hidden="true">`+
+        `<path d="M1 1l4.6 4.5L1 10" fill="none" stroke="currentColor" stroke-width="1.8"`+
+        ` stroke-linecap="round" stroke-linejoin="round"/></svg></span></td>
+      <td>${r.markets}</td>
+      <td>${occ.toFixed(1)}%</td>
+      <td class="${pts<0?"neg":"pos"}">${fmtPts(pts)}</td>
+      <td>${fmtInt(r.onBooks)}</td>
+      <td class="${r.vsLy<0?"neg":"pos"}">${fmtSigned(r.vsLy)}</td>
+      <td>${r.behind} of ${r.markets}</td></tr>`;
+  }).join("");
+  $("#regcompare").innerHTML = head+`<tbody>${body}</tbody>`;
+  $("#regcompare").querySelectorAll("tbody tr").forEach(tr=>{
+    // From All markets a row is a drill-through: it opens the region tab on that region.
+    const pick=()=>{
+      state.regionPick = new Set([tr.dataset.reg]);
+      if(state.tab==="all"){ setTab("region"); $("#tab-region").focus(); }
+      else setRegions(new Set([tr.dataset.reg]));
+    };
+    tr.addEventListener("click",pick);
+    tr.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); pick(); }});
+  });
+}
+
+/* ── tabs & region selection ───────────────────────────── */
+// A search that no longer matches anything in the chosen regions would leave the
+// page on a dead end, so it is cleared and the reason is stated once.
+let qCleared=null;
+function clearStrandedSearch(){
+  if(!state.q) return;
+  const q=state.q.toLowerCase();
+  if(DATA.markets.some(m=>state.regions.has(m.r) && qMatch(m,q))) return;
+  qCleared=state.q; state.q="";
+  const box=$("#q"); if(box) box.value="";
+  const list=$("#qlist"); if(list){ list.hidden=true; list.innerHTML=""; }
+}
+
+function syncChips(){
+  $("#regions").querySelectorAll("[data-r]").forEach(c=>
+    c.setAttribute("aria-pressed", String(state.regions.has(c.dataset.r))));
+  const n=state.regions.size, mk=visibleMarkets().length;
+  let hint;
+  if(n===0){
+    hint = "No regions selected. Pick one above \u2014 or start from the region comparison on the All markets tab.";
+  } else if(n===REG.length){
+    hint = `All ${REG.length} regions selected \u2014 ${mk} markets, the same coverage as the All markets tab. Deselect a region to narrow it.`;
+  } else {
+    hint = `${mk} market${mk===1?"":"s"} in ${n} region${n===1?"":"s"}. Every figure below, including the four headline numbers, is scoped to this selection.`;
+  }
+  if(qCleared){
+    hint += ` Cleared the market search (\u201c${qCleared}\u201d) \u2014 no match here.`;
+    qCleared=null;
+  }
+  $("#rshint").textContent = hint;
+}
+function setRegions(set){
+  state.regions=set;
+  if(state.tab==="region") state.regionPick=new Set(set);
+  clearStrandedSearch();
+  syncChips(); render();
+}
+function setTab(tab){
+  state.tab=tab;
+  $("#tab-all").setAttribute("aria-selected", String(tab==="all"));
+  $("#tab-region").setAttribute("aria-selected", String(tab==="region"));
+  $("#regionstrip").hidden = tab!=="region";
+  $("#regcompare-sec").hidden = tab!=="all";   // portfolio summary, so it lives on All markets
+  // sorting and market search have nothing to act on when the grid is one line
+  $("#f-sort").hidden = tab==="all";
+  $("#f-find").hidden = tab==="all";
+  if(tab==="all"){ state.q=""; $("#q").value=""; }
+  state.regions = tab==="all" ? new Set(REG) : new Set(state.regionPick);
+  clearStrandedSearch();
+  try{ localStorage.setItem("mdp-tab", tab); }catch(_){}
+  syncChips(); render();
+}
+
+/* ── render all ────────────────────────────────────────── */
+// Plain-language name of the active segment, for the state chips.
+function segLabel(){
+  return ({Sold:"Sold demand \u2014 transient + group",
+           Totals:"Totals \u2014 includes unsold block",
+           Transient:"Transient only",
+           "Group Sold":"Group sold only"})[state.seg] || state.seg;
+}
+function windowLabel(){
+  const idx=monthIdx();
+  return idx.length===DATA.months.length
+       ? `all ${DATA.months.length} stay months in the file`
+       : `${DATA.labels[idx[0]]} \u2013 ${DATA.labels[idx[idx.length-1]]}`;
+}
+function renderStateChips(){
+  const txt=`${segLabel()} \u00b7 ${windowLabel()}`;
+  ["#hmstate","#regstate","#trendstate"].forEach(id=>{ const el=$(id); if(el) el.textContent=txt; });
+}
+
+function render(){
+  renderStateChips();
+  const list=visibleMarkets();
+
+  // Nothing selected is a legitimate state, not a failure: show one clear
+  // message instead of zeroed headline figures and an empty grid.
+  const empty = list.length===0;
+  $("#kpis").hidden = empty;
+  $("#hm-sec").hidden = empty;
+  $("#trend-sec").hidden = empty || state.tab!=="all";   // portfolio view only
+  $("#detail-sec").hidden = empty || state.tab==="all" || !state.market;
+  $("#emptystate").hidden = !empty;
+  if(empty){
+    state.market=null;
+    const noRegions = state.regions.size===0;
+    $("#emptystate").innerHTML = noRegions
+      ? `<h3>No regions selected</h3>
+         <p>Choose one or more regions above to see their pacing. The
+            <em>All markets</em> tab compares every region side by side if you want
+            to see where to look first.</p>`
+      : `<h3>No market matches \u201c${esc(state.q)}\u201d</h3>
+         <p>Nothing in the selected region${state.regions.size===1?"":"s"} matches that search.
+            Clear the search box, or widen the region selection.</p>`;
+    if(state.tab==="all") renderRegionCompare();
+    return;
+  }
+
+  // Rows start collapsed: a market opens only when someone asks for it.
+  if(state.market && !list.some(m=>m.n===state.market)) state.market=null;
+  renderKpis(); renderHeatmap();
+  if(state.tab==="all"){ renderTrend(); renderRegionCompare(); }
+  if(state.market && state.tab!=="all"){ renderDetailHead(); renderCurve(); renderStack(); }
+}
+
+/* ── wiring ────────────────────────────────────────────── */
+// every date and count on the page comes from the payload, so a refresh
+// cannot leave a stale figure in the furniture
+const longDate = d => new Date(d+"T12:00:00")
+  .toLocaleDateString("en-US",{day:"numeric",month:"long",year:"numeric"});
+// setText no-ops on a missing element: the synthetic edition of this page drops
+// some of the furniture, and one absent id should not halt the whole script
+const setText = (sel, v) => { const el=$(sel); if(el) el.textContent = v; };
+setText("#asof",    longDate(DATA.asOf));
+setText("#nmk",     DATA.markets.length);
+setText("#nmonths", DATA.months.length);
+setText("#srcasof", longDate(DATA.asOf));
+setText("#srcrun",  longDate(DATA.snapshot));
+
+$("#regions").innerHTML = REG.map(r=>
+  `<button class="chip" type="button" aria-pressed="false" data-r="${esc(r)}">${esc(r)}</button>`).join("")
+  + `<button class="chip" type="button" id="allreg" style="font-weight:700">Select all</button>`
+  + `<button class="chip" type="button" id="nonereg" style="font-weight:700">Unselect all</button>`;
+$("#regions").addEventListener("click",e=>{
+  const b=e.target.closest(".chip"); if(!b) return;
+  if(b.id==="allreg"){  setRegions(new Set(REG)); return; }
+  if(b.id==="nonereg"){ setRegions(new Set());    return; }
+  const r=b.dataset.r, next=new Set(state.regions);
+  next.has(r) ? next.delete(r) : next.add(r);   // an empty set is allowed: it has its own state
+  setRegions(next);
+});
+$(".tabs").addEventListener("click",e=>{
+  const t=e.target.closest(".tab"); if(!t) return;
+  setTab(t.id==="tab-region" ? "region" : "all");
+});
+$(".tabs").addEventListener("keydown",e=>{
+  if(e.key!=="ArrowRight" && e.key!=="ArrowLeft") return;
+  e.preventDefault();
+  const next = state.tab==="all" ? "region" : "all";
+  setTab(next); $("#tab-"+next).focus();
+});
+
+[["#seg","seg"],["#win","win"],["#measure","measure"],["#sort","sort"]].forEach(([sel,key])=>{
+  $(sel).addEventListener("change",e=>{ state[key]=e.target.value; render(); });
+});
+
+// colour scale: red↔green by default, red↔blue for red-green colour blindness
+function applyScale(v){
+  if(v==="rb") document.documentElement.dataset.scale="rb";
+  else delete document.documentElement.dataset.scale;
+  try{ localStorage.setItem("mdp-scale", v); }catch(_){}
+}
+$("#scale").addEventListener("change",e=>{ applyScale(e.target.value); render(); });
+try{
+  const sc=localStorage.getItem("mdp-scale");
+  if(sc){ $("#scale").value=sc; applyScale(sc); }
+}catch(_){}
+// "Find a market" is a combobox: it filters the grid live and offers matches.
+// Prefix matches rank first, then substring and region matches, so typing "york"
+// still reaches New York City.
+const acBox=$("#q"), acList=$("#qlist");
+let acItems=[], acActive=-1;
+
+function acMatches(raw){
+  const q=raw.trim().toLowerCase();
+  if(!q) return [];
+  const starts=[], rest=[];
+  for(const m of DATA.markets){
+    const n=m.n.toLowerCase();
+    if(n.startsWith(q)) starts.push(m);
+    else if(n.includes(q) || m.r.toLowerCase().includes(q)) rest.push(m);
+  }
+  return starts.concat(rest).slice(0,8);
+}
+function acHighlight(name, raw){
+  const q=raw.trim(); if(!q) return esc(name);
+  const i=name.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0) return esc(name);
+  return esc(name.slice(0,i))+"<mark>"+esc(name.slice(i,i+q.length))+"</mark>"+esc(name.slice(i+q.length));
+}
+function acClose(){
+  acList.hidden=true; acList.innerHTML=""; acItems=[]; acActive=-1;
+  acBox.setAttribute("aria-expanded","false");
+  acBox.removeAttribute("aria-activedescendant");
+}
+function acOpen(){
+  const raw=acBox.value;
+  acItems=acMatches(raw);
+  if(!raw.trim()){ acClose(); return; }
+  acList.innerHTML = acItems.length
+    ? acItems.map((m,k)=>`<li role="option" id="ac-${k}" aria-selected="false" data-k="${k}">`+
+        `<span>${acHighlight(m.n,raw)}</span><span class="acr">${esc(m.r)}</span></li>`).join("")
+    : `<li class="acempty" role="option" aria-selected="false">No market matches “${esc(raw.trim())}”</li>`;
+  acList.hidden=false;
+  acBox.setAttribute("aria-expanded","true");
+  acActive=-1;
+}
+function acSetActive(k){
+  const lis=[...acList.querySelectorAll("li[data-k]")];
+  if(!lis.length) return;
+  acActive=(k+lis.length)%lis.length;
+  lis.forEach((li,i)=>li.setAttribute("aria-selected",String(i===acActive)));
+  acBox.setAttribute("aria-activedescendant","ac-"+acActive);
+  lis[acActive].scrollIntoView({block:"nearest"});
+}
+function acPick(m){
+  // a market outside the current region selection would otherwise match nothing,
+  // so picking it brings its region into view
+  if(!state.regions.has(m.r)){
+    state.regions=new Set([...state.regions, m.r]);
+    state.regionPick=new Set(state.regions);
+  }
+  state.q=m.n; acBox.value=m.n; state.market=m.n;
+  acClose(); syncChips(); render();
+  $("#dtitle")?.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"center"});
+}
+
+let qt;
+acBox.addEventListener("input",()=>{
+  acOpen();
+  clearTimeout(qt); qt=setTimeout(()=>{ state.q=acBox.value.trim(); render(); },140);
+});
+acBox.addEventListener("keydown",e=>{
+  if(acList.hidden){
+    if(e.key==="ArrowDown"){ acOpen(); if(acItems.length) acSetActive(0); e.preventDefault(); }
+    return;
+  }
+  if(e.key==="ArrowDown"){ acSetActive(acActive+1); e.preventDefault(); }
+  else if(e.key==="ArrowUp"){ acSetActive(acActive-1); e.preventDefault(); }
+  else if(e.key==="Enter"){
+    const m = acActive>=0 ? acItems[acActive] : acItems[0];
+    if(m){ acPick(m); e.preventDefault(); }
+  }
+  else if(e.key==="Escape"){ acClose(); e.preventDefault(); }
+});
+acList.addEventListener("mousedown",e=>{            // before blur, so the click lands
+  const li=e.target.closest("li[data-k]"); if(!li) return;
+  e.preventDefault(); acPick(acItems[+li.dataset.k]);
+});
+acBox.addEventListener("blur",()=>setTimeout(acClose,120));
+document.addEventListener("click",e=>{ if(!e.target.closest(".ac")) acClose(); });
+
+// Each chart keeps its table twin one click away — the values stay reachable
+// (and the chart stays the default view) rather than doubling the page length.
+function wireTableToggle(btnSel, tableSel, key){
+  const btn=$(btnSel), box=$(tableSel);
+  if(!btn||!box) return;
+  const apply=open=>{
+    box.hidden=!open;
+    btn.textContent=open?"Hide table":"View as a table";
+    btn.setAttribute("aria-expanded",String(open));
+  };
+  let open=false;
+  try{ open=localStorage.getItem(key)==="1"; }catch(_){}
+  apply(open);
+  btn.addEventListener("click",()=>{
+    open=!open; apply(open);
+    try{ localStorage.setItem(key, open?"1":"0"); }catch(_){}
+  });
+}
+wireTableToggle("#curvetbtn","#curvetable","mdp-t-curve");
+wireTableToggle("#ptbtn","#ptable","mdp-t-portfolio");
+
+$("#tabbtn").addEventListener("click",()=>{
+  state.table=!state.table;
+  $("#hmtable").hidden=!state.table;
+  $("#tabbtn").textContent=state.table?"Hide table":"View as a table";
+  $("#tabbtn").setAttribute("aria-expanded",String(state.table));
+  if(state.table) renderHmTable();
+});
+
+// heatmap interaction: hover, click-to-select, roving arrow-key focus
+const hm=$("#hm");
+hm.addEventListener("mousemove",e=>{
+  const c=e.target.closest(".cell"); if(!c){hideTip();return;}
+  const m=DATA.markets.find(x=>x.n===c.dataset.mk), i=+c.dataset.i;
+  const t=m.v[state.seg][i], partial=m.days[i]<m.cal[i];
+  showTip(`<div class="t">${esc(m.n)} · ${DATA.labels[i]}</div>`+
+    tipRow("Occupancy on books", t[OCC].toFixed(1)+"%")+
+    tipRow("vs last year", fmtPts(t[STLY])+" pts")+
+    tipRow("Room nights vs LY", fmtSigned(roomNights(m,i,t[STLY])))+
+    tipRow("Pickup this week", fmtPts(t[PU])+" pts")+
+    (partial?`<div class="r"><span>Partial month</span><span>${m.days[i]} of ${m.cal[i]} days</span></div>`:""),
+    e.clientX,e.clientY);
+});
+hm.addEventListener("mouseleave",hideTip);
+hm.addEventListener("click",e=>{
+  const el=e.target.closest("[data-mk]"); if(!el) return;
+  const mk=el.dataset.mk;
+  // the row label toggles the row shut again; a cell always opens its market
+  const onLabel = el.classList.contains("rowlab");
+  state.market = (onLabel && state.market===mk) ? null : mk;
+  render();
+  if(state.market){
+    $("#detail-sec")?.scrollIntoView({
+      behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"nearest"});
+  }
+});
+hm.addEventListener("keydown",e=>{
+  const c=document.activeElement.closest?.(".cell"); if(!c) return;
+  const cells=[...hm.querySelectorAll(".cell")], n=cells.indexOf(c);
+  const cols=monthIdx().length;
+  let t=null;
+  if(e.key==="ArrowRight") t=cells[n+1];
+  else if(e.key==="ArrowLeft") t=cells[n-1];
+  else if(e.key==="ArrowDown") t=cells[n+cols];
+  else if(e.key==="ArrowUp") t=cells[n-cols];
+  else if(e.key==="Enter"||e.key===" "){ state.market=c.dataset.mk; render(); e.preventDefault(); return; }
+  if(t){ e.preventDefault(); c.tabIndex=-1; t.tabIndex=0; t.focus(); }
+});
+hm.addEventListener("focusin",e=>{
+  const c=e.target.closest(".cell"); if(!c) return;
+  const m=DATA.markets.find(x=>x.n===c.dataset.mk), i=+c.dataset.i, t=m.v[state.seg][i];
+  const r=c.getBoundingClientRect();
+  showTip(`<div class="t">${esc(m.n)} · ${DATA.labels[i]}</div>`+
+    tipRow("Occupancy on books", t[OCC].toFixed(1)+"%")+
+    tipRow("vs last year", fmtPts(t[STLY])+" pts")+
+    tipRow("Room nights vs LY", fmtSigned(roomNights(m,i,t[STLY]))),
+    r.left+r.width/2, r.top);
+});
+hm.addEventListener("focusout",hideTip);
+// give the grid one tab stop
+hm.addEventListener("pointerdown",e=>{
+  const c=e.target.closest(".cell"); if(!c) return;
+  hm.querySelectorAll('.cell[tabindex="0"]').forEach(x=>x.tabIndex=-1); c.tabIndex=0;
+});
+
+$("#dclose").addEventListener("click",()=>{
+  const mk=state.market;
+  state.market=null; render();
+  // return the view to the row that was open, so nobody is dropped mid-page
+  if(mk) hm.querySelector(`.rowlab[data-mk="${CSS.escape(mk)}"]`)?.scrollIntoView({block:"nearest"});
+});
+
+// theme toggle
+function syncThemeBtn(){
+  const dark = document.documentElement.dataset.theme==="dark" ||
+    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  $("#themebtn").textContent = dark ? "Light mode" : "Dark mode";
+}
+$("#themebtn").addEventListener("click",()=>{
+  const dark = document.documentElement.dataset.theme==="dark" ||
+    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  try{ localStorage.setItem("mdp-theme", document.documentElement.dataset.theme); }catch(_){}
+  syncThemeBtn(); render();
+});
+try{ const t=localStorage.getItem("mdp-theme"); if(t) document.documentElement.dataset.theme=t; }catch(_){}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{
+  if(!document.documentElement.dataset.theme){ syncThemeBtn(); render(); }
+});
+syncThemeBtn();
+
+// the window control is written from the data, so it has to exist before the
+// first paint reads its value
+buildWindowOptions();
+
+// first tab stop inside the grid after first paint
+let bootTab="all";
+try{ const t=localStorage.getItem("mdp-tab"); if(t==="region"||t==="all") bootTab=t; }catch(_){}
+setTab(bootTab);
+const first=hm.querySelector(".cell"); if(first) first.tabIndex=0;
+})();
+</script>

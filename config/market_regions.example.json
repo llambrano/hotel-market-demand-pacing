@@ -1,0 +1,26 @@
+{
+  "Amsterdam": [
+    "Europe",
+    "Netherlands"
+  ],
+  "Chicago": [
+    "United States",
+    "United States"
+  ],
+  "Dubai": [
+    "Middle East",
+    "United Arab Emirates"
+  ],
+  "Mexico City": [
+    "Latin America & Caribbean",
+    "Mexico"
+  ],
+  "Singapore": [
+    "Asia Pacific",
+    "Singapore"
+  ],
+  "Toronto": [
+    "Canada",
+    "Canada"
+  ]
+}

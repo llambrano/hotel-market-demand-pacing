@@ -1,0 +1,23 @@
+# Source data, and anything derived from it.
+# The Amadeus export is supplied on request, not published, and the figures
+# are Amadeus's. Nothing from it is tracked here.
+raw data/
+processed/
+data/market_demand_monthly*.json
+market-demand-pacing.html
+
+# the real market -> region map is the export's own comp-set list
+config/market_regions.json
+
+# local noise
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+node_modules/
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

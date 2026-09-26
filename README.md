@@ -7,9 +7,11 @@ channel mix or chase group business.
 
 ![Market Demand Pacing](images/social-card.png)
 
-**[Open the live demo →](https://claude.ai/artifact/4GegBCQ7sctDFaQwoCgbUF)**
-· or clone this repo and open `synthetic-demo.html` in a browser. It is one
-self-contained file: no server, no build step, no network calls.
+**[Open the live demo →](https://llambrano.github.io/hotel-market-demand-pacing/)**
+
+Served straight from this repository by GitHub Pages. It is one self-contained
+HTML file — no server, no build step, no database. Clone the repo and open
+`index.html` and you get exactly the same thing offline.
 
 ---
 
@@ -45,7 +47,7 @@ What the generator models, and why each part earns its place:
 ```
 dashboard.html                   the page template — layout, styling, all the
                                  rendering logic; data is injected at build time
-synthetic-demo.html              the built page, ready to open
+index.html                       the built page — what GitHub Pages serves
 data/market_demand_synthetic.json
 scripts/
   build_monthly.py               50 daily workbooks  ->  one monthly dataset
@@ -61,7 +63,7 @@ images/
 
 ```bash
 python3 scripts/make_synthetic.py      # regenerate the synthetic dataset
-python3 scripts/build_synthetic.py     # -> synthetic-demo.html
+python3 scripts/build_synthetic.py     # -> index.html
 ```
 
 Against a real export:

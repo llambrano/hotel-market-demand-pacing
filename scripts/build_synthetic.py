@@ -29,8 +29,8 @@ EDITS = [
  "<title>Market Demand Pacing — Synthetic Demonstration</title>"),
 
 # ── masthead: a permanent marker in the band, above the as-of line ───────────
-('<p class="eyebrow">Hotel demand analytics · work sample</p>',
- '<p class="eyebrow">Hotel demand analytics · work sample</p>\n'
+('<p class="eyebrow">Hotel demand analytics</p>',
+ '<p class="eyebrow">Hotel demand analytics</p>\n'
  '        <p class="synthflag">Synthetic demonstration data — not real market figures</p>'),
 
 ('''        <p class="asof">On the books as of <b id="asof">—</b> · <b id="nmk">50</b> airport markets · <b id="nmonths">—</b> stay months</p>''',
@@ -140,8 +140,9 @@ def main():
                  "generated, not measured",
                  "No real market figures appear on this page"):
         assert must in out, f"missing the synthetic disclaimer: {must!r}"
-    (ROOT / "synthetic-demo.html").write_text(out)
-    print(f"built synthetic-demo.html  {len(out)/1024:.1f} KB  ({len(EDITS)} edits applied)")
+    # index.html so GitHub Pages serves it at the site root
+    (ROOT / "index.html").write_text(out)
+    print(f"built index.html  {len(out)/1024:.1f} KB  ({len(EDITS)} edits applied)")
 
 
 if __name__ == "__main__":
